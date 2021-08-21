@@ -37,7 +37,7 @@ class TimingPoint:
     custom_sample_index: int
     sample_volume: int
     timing_change: bool
-    kiai_time_active: bool
+    kiai_time_active: Optional[bool]
 
 @dataclass
 class HitObject:
