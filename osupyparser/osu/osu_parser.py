@@ -224,7 +224,7 @@ class OsuFile:
             custom_sample_index= int(data[4]),
             sample_volume= int(data[5]),
             timing_change= '1' == data[6],
-            kiai_time_active= '1' == data[7]
+            kiai_time_active= None if not len(data) > 6 else '1' == data[7]
         )
 
         if point.beat_length:
