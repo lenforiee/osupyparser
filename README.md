@@ -1,24 +1,40 @@
 [![PyPI version](https://badge.fury.io/py/OsuPyParser.svg)](https://badge.fury.io/py/OsuPyParser.svg)
-# OsuPyParser 
-A powerful package for parsing .osu extention file
+## OsuPyParser 
+A powerful package for parsing .osu and .osr (replay) extention files.
 
-## What's this?
-OsuPyParser is simply parser for .osu files i made for my usage due i consistantly need it in my private repositories,
-It can parse literally all major data from .osu file, even timing points.
+### What's this?
+OsuPyParser is my 2nd implementation of osu file and osr (replay) file parser.
+
+It doesn't use any external packages so you don't need to install anything else!
 
 ## Example
-Good packages need a good explanation how to use them so there it is!
+Parsing osu files is simple as never.
+
+### .osu file
 
 ```py
 from osupyparser import OsuFile
 
-osuMap = OsuFile("./test.osu")
+data = OsuFile("test.osu").parse_file()
+info = data.__dict__
+for d, e in info.items():
+    print(f"{d}: {e}") # Prints all members of the class.
+```
 
-mapInfo = osuMap.parse_file()
+### .osr file
+```py
+from osupyparser import ReplayFile
 
-print(f"{mapInfo.bpm}bpm {mapInfo.artist}")
+data = ReplayFile.from_file("test.osr")
+info = data.__dict__
+# pure_lzma = ReplayFile.from_file("test.osr", pure_lzma= True) This will return only lzma content.
+# data = ReplayFile.from_bytes(replay_files) you can also use pure bytes.
+for d, e in info.items():
+    print(f"{d}: {e}") # Prints members of class.
 ```
 
 ## Contribution
-If you feel like you want to help/fix/change something in this package,
-just create Issue or Pull Request on GitHub and I'll review it.
+If you spot any issue/bug, don't heaste to open issue/make pull request.
+
+I'll try to review it in free time :)
+
