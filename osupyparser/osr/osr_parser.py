@@ -28,6 +28,7 @@ class ReplayFile:
         self.frames: list = []
         self.score_id: int = 0
         self.seed: int = 0
+        self.target_practice_hits: float = 0.0
 
     @classmethod
     def from_bytes(cls, bytedata: bytes, pure_lzma: bool = False):
@@ -48,19 +49,23 @@ class ReplayFile:
 
     def parse_lzma(self):
         """Parses only lzma data from replay."""
-        decompressed = lzma.decompress(self.__reader.data, format= lzma.FORMAT_AUTO).decode('ascii')[:-1]
-        for action in decompressed.split(","):
-            split = action.split("|")
-            if split[0] != "-12345":
-                frame = OsuReplayFrame(int(split[0]), float(split[1]), float(split[2]), Key(int(split[3])))
-                self.frames.append(frame)
-            else:
-                self.seed = int(split[3])
+        data = lzma.decompress(self.__reader.buffer, format= lzma.FORMAT_AUTO).decode("ascii")
+        frames = [ frame.split("|") for frame in data.split(",")[:-1] ]
+
+        for action in frames:
+            if self.osu_version >= 20130319 and action[0] == "-12345":
+                # After 20130319 replays started to have seeds.
+                self.seed = int(action[3])
+                continue
+
+            # We dont know what mode is it so we assume its standard.
+            frame = OsuReplayFrame(int(action[0]), float(action[1]), float(action[2]), Key(int(action[3])))
+            self.frames.append(frame)
     
     def parse_data(self, only_lzma: bool):
         """Parses all replay data."""
         if only_lzma:
-            self.parse_lzma()
+            self.parse_lzma(self)
             return self
         
         self.mode = self.__reader.read_u8()
@@ -68,14 +73,14 @@ class ReplayFile:
         self.map_md5 = self.__reader.read_string()
         self.player_name = self.__reader.read_string()
         self.replay_md5 = self.__reader.read_string()
-        self.n300 = self.__reader.read_i16()
-        self.n100 = self.__reader.read_i16()
-        self.n50 = self.__reader.read_i16()
-        self.ngeki = self.__reader.read_i16()
-        self.nkatu = self.__reader.read_i16()
-        self.nmiss = self.__reader.read_i16()
+        self.n300 = self.__reader.read_u16()
+        self.n100 = self.__reader.read_u16()
+        self.n50 = self.__reader.read_u16()
+        self.ngeki = self.__reader.read_u16()
+        self.nkatu = self.__reader.read_u16()
+        self.nmiss = self.__reader.read_u16()
         self.score = self.__reader.read_i32()
-        self.max_combo = self.__reader.read_i16()
+        self.max_combo = self.__reader.read_u16()
         self.perfect = self.__reader.read_u8() == 1
         self.mods = self.__reader.read_i32()
         self.life_graph = self.__reader.read_string()
@@ -84,23 +89,33 @@ class ReplayFile:
         lzma_len = self.__reader.read_i32()
         lzma_data = self.__reader.read(lzma_len)
 
-        decompressed = lzma.decompress(lzma_data, format= lzma.FORMAT_AUTO).decode('ascii')[:-1]
-        for action in decompressed.split(","):
-            split = action.split("|")
-            if split[0] != "-12345":
-                if self.mode == 1:
-                    frame = TaikoReplayFrame(int(split[0]), float(split[1]), KeyTaiko(int(split[3])))
-                elif self.mode == 2:
-                    frame = CatchReplayFrame(int(split[0]), float(split[1]), split[3] == "1")
-                elif self.mode == 3:
-                    frame = ManiaReplayFrame(int(split[0]), KeyMania(int(split[1])))
-                else:
-                    frame = OsuReplayFrame(int(split[0]), float(split[1]), float(split[2]), Key(int(split[3])))
-                self.frames.append(frame)
-            else:
-                self.seed = int(split[3])
+        data = lzma.decompress(lzma_data, format= lzma.FORMAT_AUTO).decode("ascii")
+        frames = [ frame.split("|") for frame in data.split(",")[:-1] ]
+
+        for action in frames:
+            if self.osu_version >= 20130319 and action[0] == "-12345":
+                # After 20130319 replays started to have seeds.
+                self.seed = int(action[3])
+                continue
+
+            if self.mode == 0:
+                frame = OsuReplayFrame(int(action[0]), float(action[1]), float(action[2]), Key(int(action[3])))
+            elif self.mode == 1:
+                frame = TaikoReplayFrame(int(action[0]), float(action[1]), KeyTaiko(int(action[3])))
+            elif self.mode == 2:
+                frame = CatchReplayFrame(int(action[0]), float(action[1]), action[3] == "1")
+            elif self.mode == 3:
+                frame = ManiaReplayFrame(int(action[0]), KeyMania(int(action[1])))
             
-        if self.osu_version <= 20121008: self.score_id = self.__reader.read_i32()
-        else: self.score_id = self.__reader.read_i64()
+            self.frames.append(frame)
+
+        # Reference: https://github.com/ppy/osu/blob/84e1ff79a0736aa6c7a44804b585ab1c54a84399/osu.Game/Scoring/Legacy/LegacyScoreDecoder.cs#L78-L81
+        if self.osu_version >= 20140721:
+            self.score_id = self.__reader.read_i64()
+        elif self.osu_version >= 20121008:
+            self.score_id = self.__reader.read_i32()
+
+        if self.mods & 8388608:
+            self.target_practice_hits = self.__reader.read_f64()
 
         return self

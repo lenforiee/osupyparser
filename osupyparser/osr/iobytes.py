@@ -1,15 +1,16 @@
 import struct
 
 class BinaryRotator:
-    """A class for bytes rotating."""
+    """A class for bytes reading."""
 
     def __init__(self, data: bytes):
-        self.data = data
+        self.buffer = data
         self.offset = 0
 
     def read(self, offset: int):
         """Reads offseted data."""
-        data = self.data[self.offset:self.offset+offset]
+
+        data = self.buffer[self.offset:self.offset+offset]
         self.offset += offset
         return data
 
