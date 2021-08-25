@@ -1,5 +1,8 @@
 from .iobytes import BinaryRotator
-from .constants import OsuReplayFrame, CatchReplayFrame, ManiaReplayFrame, TaikoReplayFrame, Key, KeyTaiko, KeyMania
+from .constants import OsuReplayFrame
+from .constants import CatchReplayFrame
+from .constants import ManiaReplayFrame
+from .constants import TaikoReplayFrame
 import lzma
 
 class ReplayFile:
