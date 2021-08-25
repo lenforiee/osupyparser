@@ -59,7 +59,7 @@ class ReplayFile:
                 continue
 
             # We dont know what mode is it so we assume its standard.
-            frame = OsuReplayFrame(int(action[0]), float(action[1]), float(action[2]), Key(int(action[3])))
+            frame = OsuReplayFrame(int(action[0]), float(action[1]), float(action[2]), int(action[3]))
             self.frames.append(frame)
     
     def parse_data(self, only_lzma: bool):
@@ -99,13 +99,13 @@ class ReplayFile:
                 continue
 
             if self.mode == 0:
-                frame = OsuReplayFrame(int(action[0]), float(action[1]), float(action[2]), Key(int(action[3])))
+                frame = OsuReplayFrame(int(action[0]), float(action[1]), float(action[2]), int(action[3]))
             elif self.mode == 1:
-                frame = TaikoReplayFrame(int(action[0]), float(action[1]), KeyTaiko(int(action[3])))
+                frame = TaikoReplayFrame(int(action[0]), float(action[1]), int(action[3]))
             elif self.mode == 2:
                 frame = CatchReplayFrame(int(action[0]), float(action[1]), action[3] == "1")
             elif self.mode == 3:
-                frame = ManiaReplayFrame(int(action[0]), KeyMania(int(action[1])))
+                frame = ManiaReplayFrame(int(action[0]), int(action[1]))
             
             self.frames.append(frame)
 
