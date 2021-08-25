@@ -8,12 +8,12 @@ class ReplayFrame:
 class OsuReplayFrame(ReplayFrame):
     x: int
     y: int
-    keys: Key
+    keys: int
 
 @dataclass
 class TaikoReplayFrame(ReplayFrame):
     x: int
-    keys: KeyTaiko
+    keys: int
 
 @dataclass
 class CatchReplayFrame(ReplayFrame):
@@ -22,4 +22,4 @@ class CatchReplayFrame(ReplayFrame):
 
 @dataclass
 class ManiaReplayFrame(ReplayFrame):
-    keys: KeyMania
+    keys: int
