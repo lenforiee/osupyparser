@@ -216,7 +216,7 @@ class OsuFile:
         data = line.split(",")
         point = TimingPoint(
             offset= int(data[0]),
-            beat_length= float(data[1]),
+            beat_length= int(float(data[1])),
             velocity= 1,
             bpm= -1,
             time_signature= int(data[2]),
@@ -228,8 +228,8 @@ class OsuFile:
         )
 
         if point.beat_length:
-            if point.beat_length > 0:
-                # If positive, beat_length is the length of a beat in milliseconds.
+            if len(self.timing_points) == 0:
+                # Only first index contains bpm data.
                 self.bpm = point.bpm = round(60000 / point.beat_length)
             else:
                 # If negative, beat_length is a velocity factor.
@@ -304,7 +304,7 @@ class OsuFile:
             if len(data) > 8: edge_sounds = data[8].split('|')
             if len(data) > 9: edge_additions = data[9].split('|')
 
-            for i in range(0, int(data[6]) + 1):
+            for i in range(0, int(data[6])):
                 additions = self.parse_addition(edge_additions[i])
                 sound_edge_types = []
 
