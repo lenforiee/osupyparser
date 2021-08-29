@@ -98,10 +98,11 @@ class OsuFile:
         lines = list(map(lambda x: x.strip(), buffer.decode("utf-8").split("\n"))) # Strip lines.
         self.md5 = hashlib.md5(buffer).digest().hex()
 
-        if not lines[0].startswith(OSU_FILE_HEADER):
+        header_line = lines[0]
+        if header_line[:len(OSU_FILE_HEADER)] != OSU_FILE_HEADER:
             # First line should have osu special header.
-            raise ValueError(f"Unknown file error! Excepted: {OSU_FILE_HEADER}, got {lines[0]}")
-        self.file_version = int(lines[0][len(OSU_FILE_HEADER):])
+            raise ValueError(f"Unknown file error! Excepted: {OSU_FILE_HEADER}, got {header_line}")
+        self.file_version = int(header_line[len(OSU_FILE_HEADER):])
 
         section_name = ""
         for line in lines[1:]:
@@ -123,72 +124,72 @@ class OsuFile:
     def general_parser(self, line: str) -> None:
         """Parses [General] header data."""
         if "AudioFilename" in line:
-            self.audio_filename = line.split("AudioFilename: ")[1]
+            self.audio_filename = line.split("AudioFilename:")[1].strip()
         elif "AudioLeadIn" in line:
-            self.audio_lead_in = int(line.split("AudioLeadIn: ")[1])
+            self.audio_lead_in = int(line.split("AudioLeadIn:")[1].strip())
         elif "PreviewTime" in line:
-            self.preview_time = int(line.split("PreviewTime: ")[1])
+            self.preview_time = int(line.split("PreviewTime:")[1].strip())
         elif "Countdown" in line:
-            self.countdown = int(line.split("Countdown: ")[1])
+            self.countdown = int(line.split("Countdown:")[1].strip())
         elif "SampleSet" in line:
-            self.sample_set = line.split("SampleSet: ")[1]
+            self.sample_set = line.split("SampleSet:")[1].strip()
         elif "StackLeniency" in line:
-            self.stack_leniency = float(line.split("StackLeniency: ")[1])
+            self.stack_leniency = float(line.split("StackLeniency:")[1].strip())
         elif "Mode" in line:
-            self.mode = int(line.split("Mode: ")[1])
+            self.mode = int(line.split("Mode:")[1].strip())
         elif "LetterboxInBreaks" in line: # Making it bool.
-            self.letterbox_in_breaks = "1" == line.split("LetterboxInBreaks: ")[1]
+            self.letterbox_in_breaks = "1" == line.split("LetterboxInBreaks:")[1].strip()
         elif "WidescreenStoryboard" in line: # Same here.
-            self.widescreen_storyboard = "1" == line.split("WidescreenStoryboard: ")[1]
+            self.widescreen_storyboard = "1" == line.split("WidescreenStoryboard:")[1].strip()
     
     def editor_parser(self, line: str) -> None:
         """Parses [Editor] header data."""
         if "DistanceSpacing" in line:
-            self.distance_spacing = float(line.split("DistanceSpacing: ")[1])
+            self.distance_spacing = float(line.split("DistanceSpacing:")[1].strip())
         elif "BeatDivisor" in line:
-            self.beat_divisor = int(line.split("BeatDivisor: ")[1])
+            self.beat_divisor = int(line.split("BeatDivisor:")[1].strip())
         elif "GridSize" in line:
-            self.grid_size = int(line.split("GridSize: ")[1])
+            self.grid_size = int(line.split("GridSize:")[1].strip())
         elif "TimelineZoom" in line:
-            self.timeline_zoom = float(line.split("TimelineZoom: ")[1])
+            self.timeline_zoom = float(line.split("TimelineZoom:")[1].strip())
 
     def metadata_parser(self, line: str) -> None:
         """Parses [Metadata] header data."""
         if "Title:" in line:
-            self.title = line.split("Title:")[1]
+            self.title = line.split("Title:")[1].strip()
         elif "TitleUnicode" in line:
-            self.title_unicode = line.split("TitleUnicode:")[1]
+            self.title_unicode = line.split("TitleUnicode:")[1].strip()
         elif "Artist:" in line:
-            self.artist = line.split("Artist:")[1]
+            self.artist = line.split("Artist:")[1].strip()
         elif "ArtistUnicode" in line:
-            self.artist_unicode = line.split("ArtistUnicode:")[1]
+            self.artist_unicode = line.split("ArtistUnicode:")[1].strip()
         elif "Creator" in line:
-            self.creator = line.split("Creator:")[1]
+            self.creator = line.split("Creator:")[1].strip()
         elif "Version" in line:
-            self.version = line.split("Version:")[1]
+            self.version = line.split("Version:")[1].strip()
         elif "Source" in line:
-            self.source = line.split("Source:")[1]
+            self.source = line.split("Source:")[1].strip()
         elif "Tags" in line:
-            self.tags = line.split("Tags:")[1]
+            self.tags = line.split("Tags:")[1].strip()
         elif "BeatmapID" in line:
-            self.beatmap_id = int(line.split("BeatmapID:")[1])
+            self.beatmap_id = int(line.split("BeatmapID:")[1].strip())
         elif "BeatmapSetID" in line:
-            self.beatmap_set_id = int(line.split("BeatmapSetID:")[1])
+            self.beatmap_set_id = int(line.split("BeatmapSetID:")[1].strip())
     
     def difficulty_parser(self, line: str) -> None:
         """Parses [Difficulty] header data."""
         if "HPDrainRate" in line:
-            self.hp = float(line.split("HPDrainRate:")[1])
+            self.hp = float(line.split("HPDrainRate:")[1].strip())
         elif "CircleSize" in line:
-            self.cs = float(line.split("CircleSize:")[1])
+            self.cs = float(line.split("CircleSize:")[1].strip())
         elif "OverallDifficulty" in line:
-            self.od = float(line.split("OverallDifficulty:")[1])
+            self.od = float(line.split("OverallDifficulty:")[1].strip())
         elif "ApproachRate" in line:
-            self.ar = float(line.split("ApproachRate:")[1])
+            self.ar = float(line.split("ApproachRate:")[1].strip())
         elif "SliderMultiplier" in line:
-            self.slider_multiplier = float(line.split("SliderMultiplier:")[1])
+            self.slider_multiplier = float(line.split("SliderMultiplier:")[1].strip())
         elif "SliderTickRate" in line:
-            self.slider_tick_rate = float(line.split("SliderTickRate:")[1])
+            self.slider_tick_rate = float(line.split("SliderTickRate:")[1].strip())
     
     def events_parser(self, line: str) -> None:
         """Parses [Events] header data."""
@@ -215,16 +216,15 @@ class OsuFile:
         """Parses [TimingPoints] header data."""
         data = line.split(",")
         point = TimingPoint(
-            offset= int(data[0]),
-            beat_length= int(float(data[1])),
+            offset= float(data[0]),
+            beat_length= float(data[1]),
             velocity= 1,
-            bpm= -1,
             time_signature= int(data[2]),
             sample_set_id= int(data[3]),
             custom_sample_index= int(data[4]),
             sample_volume= int(data[5]),
-            timing_change= '1' == data[6],
-            kiai_time_active= None if not len(data) > 6 else '1' == data[7]
+            timing_change= None if not len(data) >= 6 else '1' == data[6],
+            kiai_time_active= None if not len(data) >= 7 else '1' == data[7]
         )
 
         if point.beat_length:
@@ -249,37 +249,31 @@ class OsuFile:
         """Parses [HitObjects] header data."""
         data = line.split(",")
 
-        hit_type = int(data[3])
-        sound_type = int(data[4])
-        new_combo = (hit_type & 4) == 4
+        _type = int(data[3])
+        sound = int(data[4])
+        new_combo = (_type & ObjectType.NEW_COMBO) == 4
+        pos = Position(int(data[0]), int(data[1]))
 
-        hitsounds_types = []
-        if sound_type & 2: hitsounds_types.append("Whistle")
-        if sound_type & 4: hitsounds_types.append("Finish")
-        if sound_type & 8: hitsounds_types.append("Clap")
-        else: hitsounds_types.append("Normal")
-
-        if hit_type & ObjectType.CIRCLE:
+        if _type & ObjectType.CIRCLE:
             self.ncircles += 1
             hitobject = Circle(
-                pos= Position(int(data[0]), int(data[1])),
-                start_time= int(data[2]),
-                new_combo = new_combo,
-                sound_types= hitsounds_types,
-                additions= self.parse_addition(data[5])
-            )
-        elif hit_type & ObjectType.SPINNER:
-            self.nspinners += 1
-            hitobject = Spinner(
-                pos= Position(int(data[0]), int(data[1])),
+                pos= pos,
                 start_time= int(data[2]),
                 new_combo= new_combo,
-                sound_types= hitsounds_types,
-                additions= self.parse_addition(data[6]),
+                sound_enum= sound
+            )
+            if len(data) > 5: hitobject.additions = self.parse_addition(data[5])
+        elif _type & ObjectType.SPINNER:
+            self.nspinners += 1
+            hitobject = Spinner(
+                pos= pos,
+                start_time= int(data[2]),
+                new_combo= new_combo,
+                sound_enum= sound,
                 end_time= int(data[5])
             )
-        elif hit_type & ObjectType.SLIDER:
-            # Hell comes...
+            if len(data) > 6: hitobject.additions = self.parse_addition(data[6])
+        elif _type & ObjectType.SLIDER:
             self.nsliders += 1
             duration = 0
             curve_type = ""
@@ -292,39 +286,32 @@ class OsuFile:
                 beats_count = (float(data[7]) * int(data[6])) / px_per_beat
                 duration = math.ceil(beats_count * timing.beat_length)
             
-            points = ('' if len(data) < 5 else data[5]).split("|")
+            points = ('' if not len(data) >= 5 else data[5]).split("|")
             if points:
                 curve_type = CURVE_TYPES.get(points[0])
                 for point in points[1:]:
                     x, y = point.split(":")
                     points_list.append(Position(int(x), int(y)))
 
-            edge_sounds = []
-            edge_additions = []
-            if len(data) > 8: edge_sounds = data[8].split('|')
-            if len(data) > 9: edge_additions = data[9].split('|')
+            edge_sounds = ('' if not len(data) >= 8 else data[8]).split("|")
+            edge_additions = ('' if not len(data) >= 9 else data[9]).split("|")
 
-            for i in range(0, int(data[6])):
-                additions = self.parse_addition(edge_additions[i])
-                sound_edge_types = []
+            for i in range(0, int(data[6]) + 1):
+                additions = None
+                sound_edge_enum = None
+                if i < len(edge_additions):
+                    additions = self.parse_addition(edge_additions[i])
 
-                if edge_sounds and len(edge_sounds) > i:
-                    sound = int(edge_sounds[i])
-                    if sound & 2: sound_edge_types.append("Whistle")
-                    if sound & 4: sound_edge_types.append("Finish")
-                    if sound & 8: sound_edge_types.append("Clap")
-                    if not len(sound_edge_types): sound_edge_types.append("Normal")
-                else:
-                    sound_edge_types.append("Normal")
+                if i < len(edge_sounds):
+                    sound_edge_enum = edge_sounds[i]
 
-                edges.append(Edge(sound_edge_types, additions))
+                edges.append(Edge(sound_edge_enum, additions))
 
             hitobject = Slider(
                 pos= Position(int(data[0]), int(data[1])),
                 start_time= int(data[2]),
                 new_combo= new_combo,
-                sound_types= hitsounds_types,
-                additions= self.parse_addition(data[10]),
+                sound_enum= sound,
                 repeat_count= int(data[6]),
                 pixel_length= float(data[7]),
                 edges= edges,
@@ -334,13 +321,14 @@ class OsuFile:
                 curve_type= curve_type,
                 end_position= points_list[-1]
             )
+            if len(data) > 10: hitobject.additions = self.parse_addition(data[10])
         else:
             # Might be some hitobject I dont know about..
             hitobject = HitObject(
                 pos= Position(int(data[0]), int(data[1])),
                 start_time= int(data[2]),
                 new_combo= new_combo,
-                sound_types= hitsounds_types
+                sound_types= sound
             )
 
         self.total_hits += 1
@@ -358,11 +346,11 @@ class OsuFile:
         data = line.split(":")
         addition = {}
         if not data: return None
-        if len(data) > 0: addition['sample'] = samples.get(data[0], None)
-        if len(data) > 1: addition['additional_sample'] = samples.get(data[1], None)
+        if len(data) > 0: addition['normal'] = samples.get(data[0], None)
+        if len(data) > 1: addition['additional'] = samples.get(data[1], None)
         if len(data) > 2: addition['custom_sample_index'] = int(data[2])
-        if len(data) > 3: addition['hitsound_volume'] = int(data[3])
-        if len(data) > 4: addition['hitsound'] = data[4]
+        if len(data) > 3: addition['volume'] = max(0, int(data[3]))
+        if len(data) > 4: addition['filename'] = data[4]
 
         additional = Additions(**addition)
         return additional
