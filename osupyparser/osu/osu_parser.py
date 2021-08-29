@@ -223,8 +223,8 @@ class OsuFile:
             sample_set_id= int(data[3]),
             custom_sample_index= int(data[4]),
             sample_volume= int(data[5]),
-            timing_change= None if not len(data) >= 6 else '1' == data[6],
-            kiai_time_active= None if not len(data) >= 7 else '1' == data[7]
+            timing_change= None if not len(data) > 6 else '1' == data[6],
+            kiai_time_active= None if not len(data) > 7 else '1' == data[7]
         )
 
         if point.beat_length:
@@ -286,15 +286,15 @@ class OsuFile:
                 beats_count = (float(data[7]) * int(data[6])) / px_per_beat
                 duration = math.ceil(beats_count * timing.beat_length)
             
-            points = ('' if not len(data) >= 5 else data[5]).split("|")
+            points = ('' if not len(data) > 5 else data[5]).split("|")
             if points:
                 curve_type = CURVE_TYPES.get(points[0])
                 for point in points[1:]:
                     x, y = point.split(":")
                     points_list.append(Position(int(x), int(y)))
 
-            edge_sounds = ('' if not len(data) >= 8 else data[8]).split("|")
-            edge_additions = ('' if not len(data) >= 9 else data[9]).split("|")
+            edge_sounds = ('' if not len(data) > 8 else data[8]).split("|")
+            edge_additions = ('' if not len(data) > 9 else data[9]).split("|")
 
             for i in range(0, int(data[6]) + 1):
                 additions = None
