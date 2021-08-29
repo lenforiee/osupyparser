@@ -328,7 +328,7 @@ class OsuFile:
                 pos= Position(int(data[0]), int(data[1])),
                 start_time= int(data[2]),
                 new_combo= new_combo,
-                sound_types= sound
+                sound_enum= sound
             )
 
         self.total_hits += 1
