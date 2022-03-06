@@ -32,6 +32,10 @@ info = data.__dict__
 for d, e in info.items():
     print(f"{d}: {e}") # Prints members of class.
 ```
+## Testing
+To run unittests type the following command to terminal in main directory:
+
+`python3 -m unittest tests/test_beatmap.py tests/test_replay.py`
 
 ## Contribution
 If you spot any issue/bug, don't heaste to open issue/make pull request.
