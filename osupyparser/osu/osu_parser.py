@@ -100,7 +100,7 @@ class OsuFile:
             buffer = stream.read()
         # Strip lines.
         lines = list(
-            map(lambda x: x.strip(), buffer.decode("utf-8").split("\n")))
+            map(lambda x: x.strip(), buffer.decode("utf-8-sig").split("\n")))
         self.md5 = hashlib.md5(buffer).digest().hex()
 
         header_line = lines[0]

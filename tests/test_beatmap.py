@@ -18,6 +18,10 @@ class TestBeatmap(unittest.TestCase):
         data = OsuFile("tests//testVersionInTag.osu").parse_file()
         self.assertTrue(data.__dict__)
 
+    def test_utf8_BOM(self):
+        data = OsuFile("tests//testLazerUTF8BOM.osu").parse_file()
+        self.assertTrue(data.__dict__)
+
 
 if __name__ == '__main__':
     unittest.main()
