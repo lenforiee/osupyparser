@@ -16,8 +16,11 @@ from .constants import ObjectType
 from .constants import OSU_FILE_HEADER
 from .constants import CURVE_TYPES
 
+
 class OsuFile:
-    """A class representing all data from .osu file."""
+    """A class representing all data from .osu file.
+    https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_%28file_format%29
+    """
 
     def __init__(self, file_path: str):
         self.__file_path: str = file_path
@@ -35,7 +38,7 @@ class OsuFile:
         self.mode: int = 0
         self.letterbox_in_breaks: bool = False
         self.widescreen_storyboard: bool = False
-        
+
         # Editor section.
         self.distance_spacing: float = 0.0
         self.beat_divisor: int = 0
@@ -95,105 +98,117 @@ class OsuFile:
 
         with open(self.__file_path, "rb") as stream:
             buffer = stream.read()
-        lines = list(map(lambda x: x.strip(), buffer.decode("utf-8").split("\n"))) # Strip lines.
+        # Strip lines.
+        lines = list(
+            map(lambda x: x.strip(), buffer.decode("utf-8-sig").split("\n")))
         self.md5 = hashlib.md5(buffer).digest().hex()
 
         header_line = lines[0]
         if header_line[:len(OSU_FILE_HEADER)] != OSU_FILE_HEADER:
             # First line should have osu special header.
-            raise ValueError(f"Unknown file error! Excepted: {OSU_FILE_HEADER}, got {header_line}")
+            raise ValueError(
+                f"Unknown file error! Excepted: {OSU_FILE_HEADER}, got {header_line}")
         self.file_version = int(header_line[len(OSU_FILE_HEADER):])
 
         section_name = ""
         for line in lines[1:]:
-            if not line: continue # Just continue looping.
+            if not line:
+                continue  # Just continue looping.
 
             if line[0] == "[" and line[-1] == "]":
                 section_name = line[1:-1].lower()
                 continue
-            
+
             # Call parser to take care of it.
             section_parser = getattr(self, f"{section_name}_parser", None)
-            if not section_parser: continue
+            if not section_parser:
+                continue
             section_parser(line)
 
         self.calculate_minor_things()
         self.calculate_max_combo()
-        return self # Return self as some people would want to make one line parsing.
+        # Return self as some people would want to make one line parsing.
+        return self
 
     def general_parser(self, line: str) -> None:
         """Parses [General] header data."""
-        if "AudioFilename" in line:
+        if line.startswith("AudioFilename"):
             self.audio_filename = line.split("AudioFilename:")[1].strip()
-        elif "AudioLeadIn" in line:
+        elif line.startswith("AudioLeadIn"):
             self.audio_lead_in = int(line.split("AudioLeadIn:")[1].strip())
-        elif "PreviewTime" in line:
+        elif line.startswith("PreviewTime"):
             self.preview_time = int(line.split("PreviewTime:")[1].strip())
-        elif "Countdown" in line:
+        elif line.startswith("Countdown"):
             self.countdown = int(line.split("Countdown:")[1].strip())
-        elif "SampleSet" in line:
+        elif line.startswith("SampleSet"):
             self.sample_set = line.split("SampleSet:")[1].strip()
-        elif "StackLeniency" in line:
-            self.stack_leniency = float(line.split("StackLeniency:")[1].strip())
-        elif "Mode" in line:
+        elif line.startswith("StackLeniency"):
+            self.stack_leniency = float(
+                line.split("StackLeniency:")[1].strip())
+        elif line.startswith("Mode"):
             self.mode = int(line.split("Mode:")[1].strip())
-        elif "LetterboxInBreaks" in line: # Making it bool.
-            self.letterbox_in_breaks = "1" == line.split("LetterboxInBreaks:")[1].strip()
-        elif "WidescreenStoryboard" in line: # Same here.
-            self.widescreen_storyboard = "1" == line.split("WidescreenStoryboard:")[1].strip()
-    
+        elif line.startswith("LetterboxInBreaks"):  # Making it bool.
+            self.letterbox_in_breaks = "1" == line.split(
+                "LetterboxInBreaks:")[1].strip()
+        elif line.startswith("WidescreenStoryboard"):  # Same here.
+            self.widescreen_storyboard = "1" == line.split(
+                "WidescreenStoryboard:")[1].strip()
+
     def editor_parser(self, line: str) -> None:
         """Parses [Editor] header data."""
-        if "DistanceSpacing" in line:
-            self.distance_spacing = float(line.split("DistanceSpacing:")[1].strip())
-        elif "BeatDivisor" in line:
+        if line.startswith("DistanceSpacing"):
+            self.distance_spacing = float(
+                line.split("DistanceSpacing:")[1].strip())
+        elif line.startswith("BeatDivisor"):
             self.beat_divisor = int(line.split("BeatDivisor:")[1].strip())
-        elif "GridSize" in line:
+        elif line.startswith("GridSize"):
             self.grid_size = int(line.split("GridSize:")[1].strip())
-        elif "TimelineZoom" in line:
+        elif line.startswith("TimelineZoom"):
             self.timeline_zoom = float(line.split("TimelineZoom:")[1].strip())
 
     def metadata_parser(self, line: str) -> None:
         """Parses [Metadata] header data."""
-        if "Title:" in line:
+        if line.startswith("Title:"):
             self.title = line.split("Title:")[1].strip()
-        elif "TitleUnicode" in line:
+        elif line.startswith("TitleUnicode"):
             self.title_unicode = line.split("TitleUnicode:")[1].strip()
-        elif "Artist:" in line:
+        elif line.startswith("Artist:"):
             self.artist = line.split("Artist:")[1].strip()
-        elif "ArtistUnicode" in line:
+        elif line.startswith("ArtistUnicode"):
             self.artist_unicode = line.split("ArtistUnicode:")[1].strip()
-        elif "Creator" in line:
+        elif line.startswith("Creator"):
             self.creator = line.split("Creator:")[1].strip()
-        elif "Version" in line:
+        elif line.startswith("Version"):
             self.version = line.split("Version:")[1].strip()
-        elif "Source" in line:
+        elif line.startswith("Source"):
             self.source = line.split("Source:")[1].strip()
-        elif "Tags" in line:
+        elif line.startswith("Tags"):
             self.tags = line.split("Tags:")[1].strip()
-        elif "BeatmapID" in line:
+        elif line.startswith("BeatmapID"):
             self.beatmap_id = int(line.split("BeatmapID:")[1].strip())
-        elif "BeatmapSetID" in line:
+        elif line.startswith("BeatmapSetID"):
             self.beatmap_set_id = int(line.split("BeatmapSetID:")[1].strip())
-    
+
     def difficulty_parser(self, line: str) -> None:
         """Parses [Difficulty] header data."""
-        if "HPDrainRate" in line:
+        if line.startswith("HPDrainRate"):
             self.hp = float(line.split("HPDrainRate:")[1].strip())
-        elif "CircleSize" in line:
+        elif line.startswith("CircleSize"):
             self.cs = float(line.split("CircleSize:")[1].strip())
-        elif "OverallDifficulty" in line:
+        elif line.startswith("OverallDifficulty"):
             self.od = float(line.split("OverallDifficulty:")[1].strip())
-        elif "ApproachRate" in line:
+        elif line.startswith("ApproachRate"):
             self.ar = float(line.split("ApproachRate:")[1].strip())
-        elif "SliderMultiplier" in line:
-            self.slider_multiplier = float(line.split("SliderMultiplier:")[1].strip())
-        elif "SliderTickRate" in line:
-            self.slider_tick_rate = float(line.split("SliderTickRate:")[1].strip())
-    
+        elif line.startswith("SliderMultiplier"):
+            self.slider_multiplier = float(
+                line.split("SliderMultiplier:")[1].strip())
+        elif line.startswith("SliderTickRate"):
+            self.slider_tick_rate = float(
+                line.split("SliderTickRate:")[1].strip())
+
     def events_parser(self, line: str) -> None:
         """Parses [Events] header data."""
-        if not "//" in line:
+        if not line.startswith("//"):
             data = line.split(",")
 
             if data and data[0] == "Video":
@@ -205,26 +220,26 @@ class OsuFile:
             elif data and data[0] == "0" and data[1] == "0":
                 # Its most likely background.
                 self.background_file = data[2]
-                if data[2][0] == '"': # Fix it then.
+                if data[2][0] == '"':  # Fix it then.
                     self.background_file = data[2][1:-1]
-            
+
             elif data and data[0] == "2":
                 self.break_times.append([int(data[1]), int(data[2])])
-    
+
     # Taken from https://github.com/nojhamster/osu-parser/blob/539b73e087d46de7aa7159476c7ea6ac50983c97/index.js#L99
     def timingpoints_parser(self, line: str) -> None:
         """Parses [TimingPoints] header data."""
         data = line.split(",")
         point = TimingPoint(
-            offset= float(data[0]),
-            beat_length= float(data[1]),
-            velocity= 1,
-            time_signature= int(data[2]),
-            sample_set_id= int(data[3]),
-            custom_sample_index= int(data[4]),
-            sample_volume= int(data[5]),
-            timing_change= None if not len(data) > 6 else '1' == data[6],
-            kiai_time_active= None if not len(data) > 7 else '1' == data[7]
+            offset=float(data[0]),
+            beat_length=float(data[1]),
+            velocity=1,
+            time_signature=int(data[2]),
+            sample_set_id=int(data[3]),
+            custom_sample_index=int(data[4]),
+            sample_volume=int(data[5]),
+            timing_change=None if not len(data) > 6 else '1' == data[6],
+            kiai_time_active=None if not len(data) > 7 else '1' == data[7]
         )
 
         if point.beat_length:
@@ -234,9 +249,9 @@ class OsuFile:
             else:
                 # If negative, beat_length is a velocity factor.
                 point.velocity = abs(100 / point.beat_length)
-        
+
         self.timing_points.append(point)
-    
+
     def colours_parser(self, line: str) -> None:
         """Parses [Colours] header data."""
         name, rgb_colours = line.split(" : ")
@@ -257,22 +272,24 @@ class OsuFile:
         if _type & ObjectType.CIRCLE:
             self.ncircles += 1
             hitobject = Circle(
-                pos= pos,
-                start_time= int(data[2]),
-                new_combo= new_combo,
-                sound_enum= sound
+                pos=pos,
+                start_time=int(data[2]),
+                new_combo=new_combo,
+                sound_enum=sound
             )
-            if len(data) > 5: hitobject.additions = self.parse_addition(data[5])
+            if len(data) > 5:
+                hitobject.additions = self.parse_addition(data[5])
         elif _type & ObjectType.SPINNER:
             self.nspinners += 1
             hitobject = Spinner(
-                pos= pos,
-                start_time= int(data[2]),
-                new_combo= new_combo,
-                sound_enum= sound,
-                end_time= int(data[5])
+                pos=pos,
+                start_time=int(data[2]),
+                new_combo=new_combo,
+                sound_enum=sound,
+                end_time=int(data[5])
             )
-            if len(data) > 6: hitobject.additions = self.parse_addition(data[6])
+            if len(data) > 6:
+                hitobject.additions = self.parse_addition(data[6])
         elif _type & ObjectType.SLIDER:
             self.nsliders += 1
             duration = 0
@@ -285,7 +302,7 @@ class OsuFile:
                 px_per_beat = self.slider_multiplier * 100 * timing.velocity
                 beats_count = (float(data[7]) * int(data[6])) / px_per_beat
                 duration = math.ceil(beats_count * timing.beat_length)
-            
+
             points = ('' if not len(data) > 5 else data[5]).split("|")
             if points:
                 curve_type = CURVE_TYPES.get(points[0])
@@ -308,35 +325,37 @@ class OsuFile:
                 edges.append(Edge(sound_edge_enum, additions))
 
             hitobject = Slider(
-                pos= Position(int(data[0]), int(data[1])),
-                start_time= int(data[2]),
-                new_combo= new_combo,
-                sound_enum= sound,
-                repeat_count= int(data[6]),
-                pixel_length= float(data[7]),
-                edges= edges,
-                points= points_list,
-                duration= duration,
-                end_time= (int(data[2]) + duration),
-                curve_type= curve_type,
-                end_position= points_list[-1]
+                pos=Position(int(data[0]), int(data[1])),
+                start_time=int(data[2]),
+                new_combo=new_combo,
+                sound_enum=sound,
+                repeat_count=int(data[6]),
+                pixel_length=float(data[7]),
+                edges=edges,
+                points=points_list,
+                duration=duration,
+                end_time=(int(data[2]) + duration),
+                curve_type=curve_type,
+                end_position=points_list[-1]
             )
-            if len(data) > 10: hitobject.additions = self.parse_addition(data[10])
+            if len(data) > 10:
+                hitobject.additions = self.parse_addition(data[10])
         else:
             # Might be some hitobject I dont know about..
             hitobject = HitObject(
-                pos= Position(int(data[0]), int(data[1])),
-                start_time= int(data[2]),
-                new_combo= new_combo,
-                sound_enum= sound
+                pos=Position(int(data[0]), int(data[1])),
+                start_time=int(data[2]),
+                new_combo=new_combo,
+                sound_enum=sound
             )
 
         self.total_hits += 1
         self.hit_objects.append(hitobject)
-    
+
     def parse_addition(self, line: str) -> Optional[Additions]:
         """Parses addictional hitobject data."""
-        if not line: return None
+        if not line:
+            return None
 
         samples = {
             "1": 'Normal',
@@ -345,12 +364,18 @@ class OsuFile:
         }
         data = line.split(":")
         addition = {}
-        if not data: return None
-        if len(data) > 0: addition['normal'] = samples.get(data[0], None)
-        if len(data) > 1: addition['additional'] = samples.get(data[1], None)
-        if len(data) > 2: addition['custom_sample_index'] = int(data[2])
-        if len(data) > 3: addition['volume'] = max(0, int(data[3]))
-        if len(data) > 4: addition['filename'] = data[4]
+        if not data:
+            return None
+        if len(data) > 0:
+            addition['normal'] = samples.get(data[0], None)
+        if len(data) > 1:
+            addition['additional'] = samples.get(data[1], None)
+        if len(data) > 2:
+            addition['custom_sample_index'] = int(data[2])
+        if len(data) > 3:
+            addition['volume'] = max(0, int(data[3]))
+        if len(data) > 4:
+            addition['filename'] = data[4]
 
         additional = Additions(**addition)
         return additional
@@ -358,8 +383,9 @@ class OsuFile:
     def get_timing_point(self, offset: int) -> TimingPoint:
         """Finds a timing point with given offset."""
         for timing in self.timing_points:
-            if timing.offset <= offset: return timing
-        
+            if timing.offset <= offset:
+                return timing
+
         return self.timing_points[0]
 
     # Reference https://github.com/Francesco149/pyttanko/blob/master/pyttanko.py#L265
@@ -382,17 +408,17 @@ class OsuFile:
                     next_offset = timings[index + 1].offset
                 else:
                     next_offset = None
-                
+
                 timing = timings[index]
                 sv_multiplier = 1.0
 
                 if not timing.timing_change and timing.beat_length < 0:
                     sv_multiplier = (-100.0 / timing.beat_length)
-                
+
                 px_per_beat = self.slider_multiplier * 100.0 * sv_multiplier
                 if self.file_version < 8:
                     px_per_beat /= sv_multiplier
-            
+
             num_beats = (
                 (hitobject.pixel_length * hitobject.repeat_count) / px_per_beat
             )
@@ -419,7 +445,8 @@ class OsuFile:
 
         for break_time in self.break_times:
             self.break_time += (break_time[1] - break_time[0])
-        
+
         if first_obj and last_obj:
             self.play_time = math.floor(last_obj.start_time / 1000)
-            self.drain_time = math.floor((last_obj.start_time - first_obj.start_time - self.break_time) / 1000)
+            self.drain_time = math.floor(
+                (last_obj.start_time - first_obj.start_time - self.break_time) / 1000)
