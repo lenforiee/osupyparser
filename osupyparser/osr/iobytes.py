@@ -52,7 +52,7 @@ class BinaryRotator:
     def read_uleb128(self) -> int:
         """Reads a uleb bytes into int."""
         if self.read_u8() != 0x0b:
-            return ""
+            return 0
 
         val = shift = 0
         while True:
