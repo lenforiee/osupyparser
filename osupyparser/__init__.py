@@ -1,3 +1,4 @@
 from __future__ import annotations
 
-from .osu import OsuFile
+from .osr import OsuReplayFile
+from .osu import OsuBeatmapFile
