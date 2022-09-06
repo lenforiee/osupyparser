@@ -4,13 +4,13 @@ import math
 from dataclasses import dataclass
 from typing import Optional
 
+from ..shared.maths import Vector2
 from .enums import CurveType
 from .enums import Effects
 from .enums import HitSoundType
 from .enums import SampleSet
 from .enums import TaikoColor
 from .enums import TimeSignature
-from .maths import Vector2
 
 
 @dataclass

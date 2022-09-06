@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import math
-import re
+from dataclasses import dataclass
 from typing import Optional
 from typing import Union
 
+from ..shared.maths import calculate_bpm_multiplier
+from ..shared.maths import calculate_end_time
+from ..shared.maths import get_slider_points
+from ..shared.maths import Vector2
 from .enums import CurveType
 from .enums import Effects
 from .enums import HitObjectType
@@ -32,13 +36,9 @@ from .models import TaikoHit
 from .models import TaikoSpinner
 from .models import TimingPoint
 from .models import Video
-from osupyparser.osu.maths import calculate_bpm_multiplier
-from osupyparser.osu.maths import calculate_end_time
-from osupyparser.osu.maths import get_slider_points
-from osupyparser.osu.maths import Vector2
 
 
-class OsuFile:
+class OsuBeatmapFile:
     def __init__(self) -> None:
 
         self.__buffer: list[str] = []
@@ -96,7 +96,7 @@ class OsuFile:
 
         # Events
         self.background: Optional[Background] = None
-        self.video: Optional[Video] = None
+        self.videos: list[Video] = []  # XXX: There can be few instances of video.
         self.break_times: list[BreakEvent] = []
 
         # Timing Points
@@ -140,7 +140,7 @@ class OsuFile:
     def __str__(self) -> str:
         return f"<OsuFile: {self.full_song_name} ({self.beatmap_id})>"
 
-    def ensure_file_type(self) -> None:
+    def __ensure_file_type(self) -> None:
         assert self.__buffer, "Buffer is empty!"
 
         header = self.__buffer.pop(0)
@@ -185,12 +185,12 @@ class OsuFile:
         return self.timing_points[timing_point].beat_length * multiplier
 
     @classmethod
-    def __from_string(cls, buffer: str) -> OsuFile:
+    def __from_string(cls, buffer: str) -> OsuBeatmapFile:
 
         self = cls()
         self.__buffer = [x.strip() for x in buffer.split("\n")]
 
-        self.ensure_file_type()
+        self.__ensure_file_type()
         self.beatmap_file_hash = hashlib.md5(buffer.encode()).hexdigest()
 
         section_name = ""
@@ -214,19 +214,19 @@ class OsuFile:
         return self
 
     @staticmethod
-    def from_path(path: str) -> OsuFile:
-        with open(path) as f:
-            return OsuFile.from_buffer(f.read())
+    def from_path(path: str) -> OsuBeatmapFile:
+        with open(path, encoding="utf-8-sig") as f:
+            return OsuBeatmapFile.from_buffer(f.read())
 
     @staticmethod
-    def from_buffer(_buffer: Union[bytes, str]) -> OsuFile:
+    def from_buffer(_buffer: Union[bytes, str]) -> OsuBeatmapFile:
         """Load an osu file from a byte buffer."""
         if not isinstance(_buffer, str):
             buffer = _buffer.decode("utf-8-sig")
         else:
             buffer = _buffer
 
-        return OsuFile.__from_string(buffer)
+        return OsuBeatmapFile.__from_string(buffer)
 
     def _general_section(self, line: str) -> None:
         """
@@ -376,6 +376,7 @@ class OsuFile:
             return
 
         data = {
+            "filename": content[2].strip('"'),
             "x_offset": 0,
             "y_offset": 0,
         }
@@ -388,12 +389,13 @@ class OsuFile:
 
         if content[0] == "0":
             # Background.
-            self.background = Background(filename=content[2].strip('"'), **data)
+            self.background = Background(**data)
+
         elif content[0] in ("Video", "1"):
             # Video.
-            self.video = Video(
-                start_time=int(content[1]), filename=content[2].strip('"'), **data
-            )
+            data["start_time"] = int(content[1])
+            self.videos.append(Video(**data))
+
         elif content[0] in ("Breaks", "2"):
             self.break_times.append(
                 BreakEvent(
