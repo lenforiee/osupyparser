@@ -20,7 +20,6 @@ class OsuReplayFile:
 
         self.__buffer: BinaryReader = BinaryReader()
 
-        # Headers
         self.mode: Mode = Mode.STANDARD
         self.osu_version: int = 0
 
@@ -49,6 +48,9 @@ class OsuReplayFile:
         self.skip_offset: int = 0
         self.frames: list[ReplayFrame] = []
         self.keypresses: list[ReplayFrame] = []
+
+    def __str__(self) -> str:
+        return f"<ReplayFile: {self.player_name} ({self.beatmap_md5})>"
 
     def __ensure_file_type(self) -> None:
         assert len(self.__buffer), "Buffer is empty!"
