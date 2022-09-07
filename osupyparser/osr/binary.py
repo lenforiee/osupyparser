@@ -19,8 +19,11 @@ class BinaryReader:
         self.buffer: bytearray = bytearray(data)
         self.offset: int = 0
 
-    def __iadd__(self, other: bytes) -> BinaryReader:
-        self.buffer += other
+    def __iadd__(self, buffer: bytes) -> BinaryReader:
+        if not isinstance(buffer, bytes):
+            raise ValueError("Buffer data content to append must be bytes-like.")
+
+        self.buffer += buffer
         return self
 
     def __len__(self) -> int:
