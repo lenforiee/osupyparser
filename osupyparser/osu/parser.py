@@ -159,7 +159,7 @@ class OsuBeatmapFile:
 
     def __beat_len_at(self, offset: int) -> float:
 
-        if not len(self.timing_points):
+        if not self.timing_points:
             return 0.0
 
         timing_point = 0
