@@ -61,17 +61,18 @@ class Vector2:
 def clamp(value: float, min: float, max: float) -> float:
     if value > max:
         return max
-    elif value < min:
+
+    if value < min:
         return min
-    else:
-        return value
+
+    return value
 
 
 def calculate_bpm_multiplier(beat_len: float) -> float:
     if beat_len >= 0.0:
         return 1.0
-    else:
-        return clamp(float(-beat_len), 10.0, 1000.0) / 100.0
+
+    return clamp(float(-beat_len), 10.0, 1000.0) / 100.0
 
 
 def get_slider_points(lines: list[str]) -> list[Vector2]:

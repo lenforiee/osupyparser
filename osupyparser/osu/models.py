@@ -111,10 +111,13 @@ class TaikoHit(Circle):
 
     @property
     def color(self) -> TaikoColor:
-        if self.hit_sound & HitSoundType.WHISTLE or self.hit_sound & HitSoundType.CLAP:
+        if (
+            self.hit_sound & HitSoundType.WHISTLE  # type: ignore
+            or self.hit_sound & HitSoundType.CLAP
+        ):
             return TaikoColor.BLUE
-        else:
-            return TaikoColor.RED
+
+        return TaikoColor.RED
 
 
 class TaikoSpinner(Spinner):
