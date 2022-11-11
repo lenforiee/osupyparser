@@ -78,7 +78,7 @@ class HitObject:
         return self.position.distance(other.position)
 
 
-### osu!standard hitobjects ###
+# osu!standard hitobjects
 class Circle(HitObject):
     pass
 
@@ -97,7 +97,7 @@ class Slider(HitObject):
     edge_additions: Optional[list[tuple[SampleSet, SampleSet]]]
 
 
-### osu!taiko hitobjects ###
+# osu!taiko hitobjects
 class TaikoDrumroll(Slider):
     @property
     def is_big(self) -> bool:
@@ -124,7 +124,7 @@ class TaikoSpinner(Spinner):
     pass
 
 
-### osu!catch hitobjects ###
+# osu!catch hitobjects
 class CatchBananaRain(Spinner):
     pass
 
@@ -137,7 +137,7 @@ class CatchJuiceStream(Slider):
     pass
 
 
-### osu!mania hitobjects ###
+# osu!mania hitobjects
 class ManiaNote(Circle):
     def set_column(self, count: int, column: int):
         width = 512.0 / count
