@@ -141,10 +141,12 @@ class OsuBeatmapFile:
         return f"<OsuFile: {self.full_song_name} ({self.beatmap_id})>"
 
     def __ensure_file_type(self) -> None:
-        assert self.__buffer, "Buffer is empty!"
+        if not self.__buffer:
+            raise ValueError("OsuBeatmapFile buffer is empty!")
 
         header = self.__buffer.pop(0)
-        assert header[:17] == "osu file format v", "Buffer is not a valid osu file!"
+        if not header[:17] == "osu file format v":
+            raise ValueError("OsuBeatmapFile buffer is not a valid osu file!")
 
         self.file_version = int(header[17:])
 

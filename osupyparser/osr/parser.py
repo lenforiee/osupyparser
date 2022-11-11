@@ -53,7 +53,8 @@ class OsuReplayFile:
         return f"<ReplayFile: {self.player_name} ({self.beatmap_md5})>"
 
     def __ensure_file_type(self) -> None:
-        assert len(self.__buffer), "Buffer is empty!"
+        if not self.__buffer:
+            raise ValueError("OsuReplayFile buffer is empty!")
 
     def __parse_lzma_content(self, length: int = -1) -> None:
         data = lzma.decompress(  # type: ignore
