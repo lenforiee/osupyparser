@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from enum import IntEnum
 from enum import IntFlag
+from typing import Optional
 
 
 class Mode(IntEnum):
@@ -10,6 +11,28 @@ class Mode(IntEnum):
     TAIKO = 1
     CATCH = 2
     MANIA = 3
+
+
+class EventType(IntEnum):
+    BACKGROUND = 0
+    VIDEO = 1
+    BREAK = 2
+    COLOUR = 3
+    SPRITE = 4
+    SAMPLE = 5
+    ANIMATION = 6
+    STORYBOARD_COMMAND = 7
+
+    @staticmethod
+    def from_str(value: str) -> Optional[EventType]:
+
+        if value.isdigit():
+            return EventType(int(value))
+
+        if value.upper() not in EventType.__members__:
+            return
+
+        return EventType[value.upper()]
 
 
 class CurveType(Enum):

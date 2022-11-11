@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 from dataclasses import dataclass
 from typing import Optional
@@ -11,6 +12,7 @@ from ..shared.maths import calculate_end_time
 from ..shared.maths import get_slider_points
 from ..shared.maths import Vector2
 from .enums import CurveType
+from .enums import EventType
 from .enums import Effects
 from .enums import HitObjectType
 from .enums import HitSoundType
@@ -37,12 +39,20 @@ from .models import TaikoSpinner
 from .models import TimingPoint
 from .models import Video
 
+# storyboard event list.
+STORYBOARD_EVENTS = [
+    EventType.SPRITE,
+    EventType.SAMPLE,
+    EventType.ANIMATION,
+    EventType.STORYBOARD_COMMAND,
+]
+
 
 class OsuBeatmapFile:
     def __init__(self) -> None:
 
         self.__buffer: list[str] = []
-        self.__sb_buffer: list[str] = []  # TODO: Storyboard parsing.
+        self._sb_buffer: list[str] = []  # TODO: Storyboard parsing.
 
         self.file_version: int = 0
 
@@ -374,7 +384,22 @@ class OsuBeatmapFile:
             return
 
         content = line.split(",")
-        if not content:
+
+        if line.startswith(" ") or line.startswith("_"):
+            event_type = EventType.STORYBOARD_COMMAND
+        else:
+            event_type = EventType.from_str(content[0])
+
+        if event_type is None:
+            logging.warn(
+                f"[OsuBeatmapFile:_events_section] Silently ignoring invalid event: {line!r}"
+            )
+            return
+
+        print(event_type)
+
+        if event_type in STORYBOARD_EVENTS:
+            self._sb_buffer.append(line)  # Its most likely a storyboard event.
             return
 
         data = {
@@ -389,22 +414,17 @@ class OsuBeatmapFile:
         if len(content) > 4:
             data["y_offset"] = int(content[4])
 
-        if content[0] == "0":
-            # Background.
+        if event_type == EventType.BACKGROUND:
             self.background = Background(**data)
 
-        elif content[0] in ("Video", "1"):
-            # Video.
+        elif event_type == EventType.VIDEO:
             data["start_time"] = int(content[1])
             self.videos.append(Video(**data))
 
-        elif content[0] in ("Breaks", "2"):
-            self.break_times.append(
-                BreakEvent(
-                    start_time=int(content[1]),
-                    end_time=int(content[2]),
-                ),
-            )
+        elif event_type == EventType.BREAK:
+            start_time = int(content[1])
+            end_time = int(content[2])
+            self.break_times.append(BreakEvent(start_time, end_time))
 
     def _timingpoints_section(self, line: str) -> None:
         """
