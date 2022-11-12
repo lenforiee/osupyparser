@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Union
+
+import math
 
 
 @dataclass
@@ -96,3 +99,12 @@ def calculate_end_time(
 ) -> int:
     duration = int(pixel_len / (100.0 * slider_multi) * repeats * beat_len)
     return start_time + duration
+
+
+def check_nan_or_inf(value: Union[int, float]) -> Union[int, float]:
+    """Checks if a value is NaN or infinity. If it is, it returns 0."""
+
+    if math.isnan(value) or math.isinf(value):
+        return 0.0
+
+    return value

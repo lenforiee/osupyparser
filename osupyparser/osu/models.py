@@ -10,7 +10,7 @@ from .enums import Effects
 from .enums import HitSoundType
 from .enums import SampleSet
 from .enums import TaikoColor
-from .enums import TimeSignature
+from .enums import ITimeSignature
 
 
 @dataclass
@@ -43,16 +43,16 @@ class Video:
 
 @dataclass
 class TimingPoint:
-    offset: int
+    offset: float
     beat_length: float
-    time_signature: TimeSignature
+    time_signature: ITimeSignature
     sample_set: SampleSet
     custom_sample_set: int
     volume: int
-    inherited: bool
+    timing_change: bool
     effects: Effects
-    bpm: float
-    velocity: float
+    bpm: Optional[float]
+    velocity: Optional[float]
 
 
 @dataclass

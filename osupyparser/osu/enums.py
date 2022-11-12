@@ -93,9 +93,37 @@ class TaikoColor(IntEnum):
     BLUE = 1
 
 
-class TimeSignature(IntEnum):
-    SIMPLE_TRIPLE = 3
-    SIMPLE_QUADRUPLE = 4
+class ITimeSignature:
+    def __init__(self, numerator: int):
+
+        if numerator < 1:
+            raise ValueError("The numerator of a time signature must be positive.")
+
+        self.numerator = numerator
+
+    def __str__(self):
+        return self.to_str()
+
+    def to_str(self) -> str:
+        return f"{self.numerator}/4"
+
+    @staticmethod
+    def from_str(value: str) -> ITimeSignature:
+        return ITimeSignature(int(value))
+
+
+class TimeSignature:
+    SIMPLE_TRIPLE = ITimeSignature(3)
+    SIMPLE_QUADRUPLE = ITimeSignature(4)
+
+    def __new__(cls, numerator: int):
+        if numerator == 3:
+            return TimeSignature.SIMPLE_TRIPLE
+
+        if numerator == 4:
+            return TimeSignature.SIMPLE_QUADRUPLE
+
+        return ITimeSignature(numerator)
 
 
 class OverlayPosition(Enum):

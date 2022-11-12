@@ -3,13 +3,10 @@ from __future__ import annotations
 import hashlib
 import logging
 import math
-from dataclasses import dataclass
 from typing import Optional
 from typing import Union
 
-from ..shared.maths import calculate_bpm_multiplier
-from ..shared.maths import calculate_end_time
-from ..shared.maths import get_slider_points
+from ..shared import maths
 from ..shared.maths import Vector2
 from .enums import CurveType
 from .enums import EventType
@@ -184,7 +181,7 @@ class OsuBeatmapFile:
 
         for i, timing in enumerate(self.timing_points):
             if timing.offset < offset:
-                if timing.inherited:
+                if timing.timing_change:
                     sample_point = i
                 else:
                     timing_point = i
@@ -195,7 +192,7 @@ class OsuBeatmapFile:
             sample_point > timing_point
             and self.timing_points[sample_point].beat_length < 0
         ):
-            multiplier = calculate_bpm_multiplier(
+            multiplier = maths.calculate_bpm_multiplier(
                 self.timing_points[sample_point].beat_length,
             )
 
@@ -467,40 +464,49 @@ class OsuBeatmapFile:
         if not content:
             return
 
-        offset = int(content[0])
-        beat_length = float(content[1])
+        offset = int(float(content[0]))
+        beat_length = maths.check_nan_or_inf(float(content[1]))
+
         time_signature = TimeSignature.SIMPLE_QUADRUPLE
-        sample_set = SampleSet.NONE
-        custom_sample_set = 0
-        volume = 100
-        inherited = True
-        effects = Effects.NONE
-
         if len(content) >= 3:
-            time_signature = TimeSignature(int(content[2]))
+            if content[2][0] == "0":
+                time_signature = TimeSignature.SIMPLE_QUADRUPLE
+            else:
+                time_signature = TimeSignature(int(content[2]))
 
+        sample_set = self.sample_set
         if len(content) >= 4:
-            sample_set = SampleSet(int(content[3]))
+            sample_set = SampleSet(
+                abs(int(content[3]))
+            )  # XXX: Absolute value due to aspire maps using negative values.
+            # TIP: If you want to revert it just multiply it by -1.
 
+        custom_sample_set = 0
         if len(content) >= 5:
             custom_sample_set = int(content[4])
 
+        sample_volume = self.sample_volume
         if len(content) >= 6:
-            volume = int(content[5])
+            sample_volume = int(content[5])
 
+        timing_change = True
         if len(content) >= 7:
-            inherited = int(content[6]) == 1
+            timing_change = content[6][0] == "1"
 
+        effects = Effects.NONE
         if len(content) >= 8:
             effects = Effects(int(content[7]))
 
-        bpm = velocity = 0
-        if inherited:
+        bpm = velocity = None
+        if timing_change:
             bpm = round(60000 / beat_length)
             self.min_bpm = min(self.min_bpm, bpm) if self.min_bpm else bpm
             self.max_bpm = max(self.max_bpm, bpm) if self.max_bpm else bpm
         else:
-            velocity = abs(100 / beat_length)
+            if beat_length < 0:
+                velocity = 100 / -beat_length
+            else:
+                velocity = 1
 
         self.timing_points.append(
             TimingPoint(
@@ -509,8 +515,8 @@ class OsuBeatmapFile:
                 time_signature=time_signature,
                 sample_set=sample_set,
                 custom_sample_set=custom_sample_set,
-                volume=volume,
-                inherited=inherited,
+                volume=sample_volume,
+                timing_change=timing_change,
                 effects=effects,
                 bpm=bpm,
                 velocity=velocity,
@@ -657,12 +663,12 @@ class OsuBeatmapFile:
             self.nsliders += 1
 
             curve_type = CurveType(content[5].split("|")[0][0])
-            slider_points = get_slider_points(content[5].split("|"))
+            slider_points = maths.get_slider_points(content[5].split("|"))
 
             repeats = int(content[6])
             pixel_length = float(content[7])
 
-            end_time = calculate_end_time(
+            end_time = maths.calculate_end_time(
                 start_time,
                 repeats,
                 pixel_length,
@@ -734,7 +740,7 @@ class OsuBeatmapFile:
             timing_point = self.__timing_point_at(hit_object.start_time)
             sv_multiplier = 1.0
 
-            if not timing_point.inherited and timing_point.beat_length < 0:
+            if not timing_point.timing_change and timing_point.beat_length < 0:
                 sv_multiplier = -100.0 / timing_point.beat_length
 
             px_per_beat = self.slider_multiplier * 100.0 * sv_multiplier
