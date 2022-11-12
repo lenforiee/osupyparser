@@ -48,6 +48,12 @@ STORYBOARD_EVENTS = [
 ]
 
 
+def parse_value_from_str(s: str) -> str:
+    """Parses a value from a string."""
+
+    return s.split(":", 1)[1].strip()
+
+
 class OsuBeatmapFile:
     def __init__(self) -> None:
 
@@ -200,7 +206,7 @@ class OsuBeatmapFile:
     def __from_string(cls, buffer: str) -> OsuBeatmapFile:
 
         self = cls()
-        self.__buffer = [x.strip() for x in buffer.split("\n")]
+        self.__buffer = buffer.split("\n")
 
         self.__ensure_file_type()
         self.beatmap_file_hash = hashlib.md5(buffer.encode()).hexdigest()
@@ -209,7 +215,7 @@ class OsuBeatmapFile:
         while self.__buffer:  # While loop to flush buffer
             line = self.__buffer.pop(0)
 
-            if not line:
+            if not line.strip():
                 continue  # Line is empty.
 
             if line[0] == "[" and line[-1] == "]":
@@ -244,137 +250,160 @@ class OsuBeatmapFile:
         """
         Reference: https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_(file_format)#general
         """
+        if ":" not in line:
+            return
+
+        value = parse_value_from_str(line)
+
         if line.startswith("AudioFilename"):
-            self.audio_filename = line.split(": ")[1]
+            self.audio_filename = value
 
         elif line.startswith("AudioLeadIn"):
-            self.audio_lead_in = int(line.split(": ")[1])
+            self.audio_lead_in = int(value)
 
         elif line.startswith("AudioHash"):
-            self.audio_hash = line.split(": ")[1]  # Deprecated.
+            self.audio_hash = value  # Deprecated.
 
         elif line.startswith("PreviewTime"):
-            self.preview_time = int(line.split(": ")[1])
+            self.preview_time = int(value)
 
         elif line.startswith("Countdown"):
-            self.countdown = int(line.split(": ")[1])
+            self.countdown = int(value)
 
         elif line.startswith("SampleSet"):
-            self.sample_set = SampleSet.from_str(line.split(": ")[1])
+            self.sample_set = SampleSet.from_str(value)
+
+        elif line.startswith("SampleVolume"):
+            self.sample_volume = int(value)
 
         elif line.startswith("StackLeniency"):
-            self.stack_leniency = float(line.split(": ")[1])
+            self.stack_leniency = float(value)
 
         elif line.startswith("Mode"):
-            self.mode = Mode(int(line.split(": ")[1]))
+            self.mode = Mode(int(value))
 
         elif line.startswith("LetterboxInBreaks"):
-            self.letterbox_in_breaks = line.split(": ")[1] == "1"  # Cast it to bool.
+            self.letterbox_in_breaks = value == "1"  # Cast it to bool.
 
         elif line.startswith("StoryFireInFront"):
-            self.story_fire_in_front = line.split(": ")[1] == "1"
+            self.story_fire_in_front = value == "1"
 
         elif line.startswith("UseSkinSprites"):
-            self.use_skin_sprites = line.split(": ")[1] == "1"
+            self.use_skin_sprites = value == "1"
 
         elif line.startswith("AlwaysShowPlayfield"):
-            self.always_show_play_field = line.split(": ")[1] == "1"  # Deprecated.
+            self.always_show_play_field = value == "1"  # Deprecated.
 
         elif line.startswith("OverlayPosition"):
-            self.overlay_position = OverlayPosition(line.split(": ")[1])
+            self.overlay_position = OverlayPosition(value)
 
         elif line.startswith("SkinPreference"):
-            self.skin_preference = line.split(": ")[1]
+            self.skin_preference = value
 
         elif line.startswith("EpilepsyWarning"):
-            self.epilepsy_warning = line.split(": ")[1] == "1"
+            self.epilepsy_warning = value == "1"
 
         elif line.startswith("CountdownOffset"):
-            self.countdown_offset = int(line.split(": ")[1])
+            self.countdown_offset = int(value)
 
         elif line.startswith("SpecialStyle"):
-            self.special_style = line.split(": ")[1] == "1"
+            self.special_style = value == "1"
 
         elif line.startswith("WidescreenStoryboard"):
-            self.widescreen_storyboard = line.split(": ")[1] == "1"
+            self.widescreen_storyboard = value == "1"
 
         elif line.startswith("SamplesMatchPlaybackRate"):
-            self.samples_match_playback_rate = line.split(": ")[1] == "1"
+            self.samples_match_playback_rate = value == "1"
 
     def _editor_section(self, line: str) -> None:
         """
         Reference: https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_(file_format)#editor
         """
+        if ":" not in line:
+            return
+
+        value = parse_value_from_str(line)
+
         if line.startswith("Bookmarks"):
-            self.bookmarks = [int(x) for x in line.split(": ")[1].split(",")]
+            self.bookmarks = [int(x) for x in value.split(",") if x != ""]
 
         elif line.startswith("DistanceSpacing"):
-            self.distance_spacing = float(line.split(": ")[1])
+            self.distance_spacing = float(value)
 
         elif line.startswith("BeatDivisor"):
-            self.beat_divisor = float(line.split(": ")[1])
+            self.beat_divisor = float(value)
 
         elif line.startswith("GridSize"):
-            self.grid_size = int(line.split(": ")[1])
+            self.grid_size = int(value)
 
         elif line.startswith("TimelineZoom"):
-            self.timeline_zoom = float(line.split(": ")[1])
+            self.timeline_zoom = float(value)
 
     def _metadata_section(self, line: str) -> None:
         """
         Reference: https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_(file_format)#metadata
         """
+        if ":" not in line:
+            return
+
+        value = parse_value_from_str(line)
+
         if line.startswith("Title:"):
-            self.title = line.split("Title:")[1]
+            self.title = value
 
         elif line.startswith("TitleUnicode"):
-            self.title_unicode = line.split("TitleUnicode:")[1]
+            self.title_unicode = value
 
         elif line.startswith("Artist:"):
-            self.artist = line.split("Artist:")[1]
+            self.artist = value
 
-        elif line.startswith("ArtistUnicode"):
-            self.artist_unicode = line.split("ArtistUnicode:")[1]
+        elif line.startswith("ArtistUnicode:"):
+            self.artist_unicode = value
 
         elif line.startswith("Creator"):
-            self.creator = line.split(":")[1]
+            self.creator = value
 
         elif line.startswith("Version"):
-            self.version = line.split(":")[1]
+            self.version = value
 
         elif line.startswith("Source"):
-            self.source = line.split(":")[1]
+            self.source = value
 
         elif line.startswith("Tags"):
-            self.tags = line.split(":")[1].split(" ")
+            self.tags = value.split(" ")
 
         elif line.startswith("BeatmapID"):
-            self.beatmap_id = int(line.split(":")[1])
+            self.beatmap_id = int(value)
 
         elif line.startswith("BeatmapSetID"):
-            self.beatmap_set_id = int(line.split(":")[1])
+            self.beatmap_set_id = int(value)
 
     def _difficulty_section(self, line: str) -> None:
         """
         Reference: https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_(file_format)#difficulty
         """
+        if ":" not in line:
+            return
+
+        value = parse_value_from_str(line)
+
         if line.startswith("HPDrainRate"):
-            self.hp = float(line.split(":")[1])
+            self.hp = float(value)
 
         elif line.startswith("CircleSize"):
-            self.cs = float(line.split(":")[1])
+            self.cs = float(value)
 
         elif line.startswith("OverallDifficulty"):
-            self.od = float(line.split(":")[1])
+            self.od = float(value)
 
         elif line.startswith("ApproachRate"):
-            self.ar = float(line.split(":")[1])
+            self.ar = float(value)
 
         elif line.startswith("SliderMultiplier"):
-            self.slider_multiplier = float(line.split(":")[1])
+            self.slider_multiplier = float(value)
 
         elif line.startswith("SliderTickRate"):
-            self.slider_tick_rate = float(line.split(":")[1])
+            self.slider_tick_rate = float(value)
 
     def _events_section(self, line: str) -> None:
         """
