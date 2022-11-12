@@ -138,7 +138,6 @@ class OsuBeatmapFile:
         self.ncircles: int = 0
         self.nsliders: int = 0
         self.nspinners: int = 0
-        self.nhold: int = 0
 
         # Times
         self.play_time: int = 0
@@ -147,7 +146,7 @@ class OsuBeatmapFile:
 
     @property
     def nobjects(self) -> int:
-        return self.ncircles + self.nsliders + self.nspinners + self.nhold
+        return self.ncircles + self.nsliders + self.nspinners
 
     @property
     def full_song_name(self) -> str:
@@ -636,7 +635,7 @@ class OsuBeatmapFile:
 
         elif hit_type == HitObjectType.HOLD:
 
-            self.nhold += 1
+            self.nsliders += 1
 
             additions = content[5].split(":")
             end_time = int(additions[0])
