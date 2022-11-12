@@ -232,14 +232,14 @@ class OsuBeatmapFile:
 
     @staticmethod
     def from_path(path: str) -> OsuBeatmapFile:
-        with open(path, encoding="utf-8-sig") as f:
+        with open(path, encoding="utf-8-sig", errors="ignore") as f:
             return OsuBeatmapFile.from_buffer(f.read())
 
     @staticmethod
     def from_buffer(_buffer: Union[bytes, str]) -> OsuBeatmapFile:
         """Load an osu file from a byte buffer."""
         if not isinstance(_buffer, str):
-            buffer = _buffer.decode("utf-8-sig")
+            buffer = _buffer.decode("utf-8-sig", errors="ignore")
         else:
             buffer = _buffer
 
