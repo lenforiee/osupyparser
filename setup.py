@@ -1,14 +1,14 @@
 import setuptools
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+with open("README.md", "r", encoding="utf-8") as stream:
+    long_description = stream.read()
 
 setuptools.setup(
-    name="OsuPyParser",
-    version="1.0.8",
+    name="osupyparser",
+    version="1.0.8",  # TODO: update to 2.0.0
     author="lenforiee",
-    author_email="lenforiee@misumi.me",
-    description="A powerful package for parsing .osu and .osr extention files",
+    author_email="lenforiee@gmail.com",
+    description="A powerful package to parse osu! file formats.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/lenforiee/osupyparser",
@@ -18,5 +18,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.8",
 )
