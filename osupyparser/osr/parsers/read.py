@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import lzma
+import json
 from typing import Any
 from typing import BinaryIO
 
@@ -11,6 +12,7 @@ from osupyparser.common.binary import BinaryReader
 from osupyparser.constants.mods import Mods
 from osupyparser.constants.mode import Mode
 
+from osupyparser.osr.models.lazer import OsuReplayLazerData
 from osupyparser.osr.models.replay import OsuReplayFile
 from osupyparser.osr.models.replay import OsuReplayFileLzma
 
@@ -70,6 +72,18 @@ def _parse_replay_contents_lzma(
         )
 
     return OsuReplayFileLzma(**lzma_data)
+
+
+def _parse_replay_contents_lazer(
+    reader: BinaryReader, *, length: int
+) -> OsuReplayLazerData:
+    data = lzma.decompress(
+        reader.read(length),
+        format=lzma.FORMAT_AUTO,
+    ).decode("ascii")
+
+    lazer_data = json.loads(data)
+    return OsuReplayLazerData(**lazer_data)
 
 
 def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
@@ -142,10 +156,17 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
         mods=replay["mods"],
     )
 
-    replay["accuracy"] = round(replay_accuracy * 100, 4)
-    replay["grade"] = replay_grade
+    replay["legacy_accuracy"] = round(replay_accuracy * 100, 4)
+    replay["legacy_grade"] = replay_grade
     replay["statistics"] = statistics
-    # TODO: Implement lazer replay data
+
+    if replay["osu_version"] >= 30000001:
+        replay_lazer_data_len = reader.read_i32()
+        replay_lazer_data = _parse_replay_contents_lazer(
+            reader, length=replay_lazer_data_len
+        )
+        replay["lazer_data"] = replay_lazer_data
+
     return OsuReplayFile(**replay)
 
 

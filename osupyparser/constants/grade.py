@@ -4,9 +4,9 @@ from enum import Enum
 
 
 class Grade(Enum):
-    XH = "SS+"
-    SH = "S+"
-    X = "SS"
+    XH = "XH"
+    SH = "SH"
+    X = "X"
     S = "S"
     A = "A"
     B = "B"

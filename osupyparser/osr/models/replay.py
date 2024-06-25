@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -8,6 +7,7 @@ from osupyparser.constants.grade import Grade
 from osupyparser.constants.mode import Mode
 from osupyparser.constants.mods import Mods
 
+from osupyparser.osr.models.lazer import OsuReplayLazerData
 from osupyparser.osr.models.statistics import ReplayStatistics
 from osupyparser.osr.models.frames import ReplayFrame
 from osupyparser.osr.models.frames import LifeBarGraphFrame
@@ -16,7 +16,7 @@ from osupyparser.osr.models.frames import LifeBarGraphFrame
 class OsuReplayFileLzma(BaseModel):
     frames: list[ReplayFrame]
     skip_offset: int
-    rng_seed: Optional[int] = None
+    rng_seed: int | None = None
 
 
 class OsuReplayFile(BaseModel):
@@ -40,10 +40,14 @@ class OsuReplayFile(BaseModel):
     frames: list[ReplayFrame]
     skip_offset: int
 
-    grade: Grade
-    accuracy: float
+    legacy_grade: Grade
+    legac_accuracy: float
 
-    online_score_id: Optional[int] = None
+    # TODO: lazer_grade and lazer_accuracy
 
-    rng_seed: Optional[int] = None
-    target_practice_hits: Optional[float] = None
+    online_score_id: int | None = None
+
+    rng_seed: int | None = None
+    target_practice_hits: float | None = None
+
+    lazer_data: OsuReplayLazerData | None = None
