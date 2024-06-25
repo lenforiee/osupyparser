@@ -14,6 +14,7 @@ from osupyparser.osr.models.frames import LifeBarGraphFrame
 
 class OsuReplayFileLzma(BaseModel):
     frames: list[ReplayFrame]
+    skip_offset: int
     rng_seed: Optional[int] = None
 
 
@@ -36,6 +37,7 @@ class OsuReplayFile(BaseModel):
     timestamp: datetime
 
     frames: list[ReplayFrame]
+    skip_offset: int
 
     online_score_id: Optional[int] = None
 

@@ -18,31 +18,21 @@ def _parse_replay_contents_lzma(
 ) -> OsuReplayFileLzma:
     lzma_data: dict[str, Any] = {}
 
-    data = lzma.decompress(  # type: ignore
+    data = lzma.decompress(
         reader.read(length),
         format=lzma.FORMAT_AUTO,
     ).decode("ascii")
 
     lzma_data["frames"] = []
+    lzma_data["skip_offset"] = 0
     absolute_frame_time = 0
 
-    for frame in data.split(","):
+    for idx, frame in enumerate(data.split(",")):
         if not frame:
             continue
 
         frame_data = frame.split("|")
         if len(frame_data) != 4:
-            continue
-
-        if frame_data[0] != "-1":
-            skip_offset = int(frame_data[0])
-
-            if mods & Mods.AUTOPLAY.value:
-                skip_offset -= 100000
-
-            if skip_offset > 0:
-                absolute_frame_time = skip_offset
-
             continue
 
         if frame_data[0] == "-12345":
@@ -52,6 +42,12 @@ def _parse_replay_contents_lzma(
 
         delta_time = int(frame_data[0])
         absolute_frame_time += delta_time
+
+        if idx == 2:  # first is time = 0, second is skip boundary
+            lzma_data["skip_offset"] = delta_time
+
+            if mods & Mods.AUTOPLAY.value:
+                lzma_data["skip_offset"] -= 100000
 
         position = {
             "x": float(frame_data[1]),
@@ -121,6 +117,7 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
 
         replay["frames"] = lzma_data.frames
         replay["rng_seed"] = lzma_data.rng_seed
+        replay["skip_offset"] = lzma_data.skip_offset
 
     # https://github.com/ppy/osu/blob/84e1ff79a0736aa6c7a44804b585ab1c54a84399/osu.Game/Scoring/Legacy/LegacyScoreDecoder.cs#L78-L81
     if replay["osu_version"] >= 2014_07_21:
