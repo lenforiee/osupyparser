@@ -12,6 +12,11 @@ from osupyparser.osr.models.frames import ReplayFrame
 from osupyparser.osr.models.frames import LifeBarGraphFrame
 
 
+class OsuReplayFileLzma(BaseModel):
+    frames: list[ReplayFrame]
+    rng_seed: Optional[int] = None
+
+
 class OsuReplayFile(BaseModel):
     mode: Mode
     osu_version: int
@@ -29,9 +34,10 @@ class OsuReplayFile(BaseModel):
 
     life_bar_graph: list[LifeBarGraphFrame]
     timestamp: datetime
-    online_score_id: int
 
     frames: list[ReplayFrame]
+
+    online_score_id: Optional[int] = None
 
     rng_seed: Optional[int] = None
     target_practice_hits: Optional[float] = None
