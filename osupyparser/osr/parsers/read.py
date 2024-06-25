@@ -4,8 +4,12 @@ import lzma
 from typing import Any
 from typing import BinaryIO
 
+from osupyparser.helpers import accuracy
+from osupyparser.helpers import grade
+
 from osupyparser.common.binary import BinaryReader
-from osupyparser.common.constants.mods import Mods
+from osupyparser.constants.mods import Mods
+from osupyparser.constants.mode import Mode
 
 from osupyparser.osr.models.replay import OsuReplayFile
 from osupyparser.osr.models.replay import OsuReplayFileLzma
@@ -13,6 +17,7 @@ from osupyparser.osr.models.replay import OsuReplayFileLzma
 
 def _parse_replay_contents_lzma(
     reader: BinaryReader,
+    *,
     length: int = -1,
     mods: int = 0,
 ) -> OsuReplayFileLzma:
@@ -71,7 +76,7 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
     replay: dict[str, Any] = {}
     statistics: dict[str, int] = {}
 
-    replay["mode"] = reader.read_u8()
+    replay["mode"] = Mode(reader.read_u8())
     replay["osu_version"] = reader.read_i32()
 
     replay["beatmap_md5"] = reader.read_string()
@@ -88,7 +93,7 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
     replay["score"] = reader.read_u32()
     replay["max_combo"] = reader.read_u16()
     replay["full_combo"] = reader.read_u8() == 1
-    replay["mods"] = reader.read_u32()
+    replay["mods"] = Mods(reader.read_u32())
 
     replay["life_bar_graph"] = []
     life_bar_graph_data = reader.read_string()
@@ -112,22 +117,33 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
     replay_frames_len = reader.read_i32()
     if replay_frames_len > 0:
         lzma_data = _parse_replay_contents_lzma(
-            reader, replay_frames_len, replay["mods"]
+            reader,
+            length=replay_frames_len,
+            mods=replay["mods"],
         )
 
         replay["frames"] = lzma_data.frames
         replay["rng_seed"] = lzma_data.rng_seed
         replay["skip_offset"] = lzma_data.skip_offset
 
-    # https://github.com/ppy/osu/blob/84e1ff79a0736aa6c7a44804b585ab1c54a84399/osu.Game/Scoring/Legacy/LegacyScoreDecoder.cs#L78-L81
     if replay["osu_version"] >= 2014_07_21:
         replay["online_score_id"] = reader.read_i64()
     elif replay["osu_version"] >= 2012_10_08:
         replay["online_score_id"] = reader.read_i32()
 
-    if replay["mods"] & Mods.TARGET.value:
+    if replay["mods"] & Mods.TARGET:
         replay["target_practice_hits"] = reader.read_f64()
 
+    replay_accuracy = accuracy.calculate_accuracy(statistics, mode=replay["mode"])
+    replay_grade = grade.calculate_grade(
+        statistics,
+        accuracy=replay_accuracy,
+        mode=replay["mode"],
+        mods=replay["mods"],
+    )
+
+    replay["accuracy"] = round(replay_accuracy * 100, 4)
+    replay["grade"] = replay_grade
     replay["statistics"] = statistics
     # TODO: Implement lazer replay data
     return OsuReplayFile(**replay)

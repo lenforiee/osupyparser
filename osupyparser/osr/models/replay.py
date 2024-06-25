@@ -4,8 +4,9 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 
-from osupyparser.common.constants.mode import Mode
-from osupyparser.common.constants.mods import Mods
+from osupyparser.constants.grade import Grade
+from osupyparser.constants.mode import Mode
+from osupyparser.constants.mods import Mods
 
 from osupyparser.osr.models.statistics import ReplayStatistics
 from osupyparser.osr.models.frames import ReplayFrame
@@ -38,6 +39,9 @@ class OsuReplayFile(BaseModel):
 
     frames: list[ReplayFrame]
     skip_offset: int
+
+    grade: Grade
+    accuracy: float
 
     online_score_id: Optional[int] = None
 
