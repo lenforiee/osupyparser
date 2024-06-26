@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import lzma
 import json
+import lzma
 from typing import Any
 from typing import BinaryIO
 
+from osupyparser.common.binary import BinaryReader
+from osupyparser.constants.mode import Mode
+from osupyparser.constants.mods import Mods
 from osupyparser.helpers import accuracy
 from osupyparser.helpers import grade
-
-from osupyparser.common.binary import BinaryReader
-from osupyparser.constants.mods import Mods
-from osupyparser.constants.mode import Mode
-
 from osupyparser.osr.models.lazer import OsuReplayLazerData
 from osupyparser.osr.models.replay import OsuReplayFile
 from osupyparser.osr.models.replay import OsuReplayFileLzma
@@ -68,7 +66,7 @@ def _parse_replay_contents_lzma(
                 "delta_time": delta_time,
                 "position": position,
                 "keys": keys,
-            }
+            },
         )
 
     return OsuReplayFileLzma(**lzma_data)
@@ -122,7 +120,7 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
             {
                 "time": int(frame_data[0]),
                 "percentage": float(frame_data[1]),
-            }
+            },
         )
 
     replay["timestamp"] = reader.read_datetime()
@@ -149,7 +147,8 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
         replay["target_practice_hits"] = reader.read_f64()
 
     replay_accuracy = accuracy.calculate_accuracy_legacy(
-        statistics, mode=replay["mode"]
+        statistics,
+        mode=replay["mode"],
     )
     replay_grade = grade.calculate_grade_legacy(
         statistics,
@@ -165,7 +164,8 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
     if replay["osu_version"] >= 30000001:
         replay_lazer_data_len = reader.read_i32()
         replay_lazer_data = _parse_replay_contents_lazer(
-            reader, length=replay_lazer_data_len
+            reader,
+            length=replay_lazer_data_len,
         )
         replay["lazer_data"] = replay_lazer_data
 

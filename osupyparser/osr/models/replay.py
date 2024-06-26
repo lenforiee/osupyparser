@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from pydantic import BaseModel
 
 from osupyparser.constants.grade import Grade
 from osupyparser.constants.mode import Mode
 from osupyparser.constants.mods import Mods
-
+from osupyparser.osr.models.frames import LifeBarGraphFrame
+from osupyparser.osr.models.frames import ReplayFrame
 from osupyparser.osr.models.lazer import OsuReplayLazerData
 from osupyparser.osr.models.statistics import ReplayStatistics
-from osupyparser.osr.models.frames import ReplayFrame
-from osupyparser.osr.models.frames import LifeBarGraphFrame
 
 
 class OsuReplayFileLzma(BaseModel):

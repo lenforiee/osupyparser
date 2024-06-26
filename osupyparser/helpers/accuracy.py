@@ -16,7 +16,7 @@ def calculate_accuracy_legacy(
                     statistics["count_100"],
                     statistics["count_50"],
                     statistics["count_miss"],
-                ]
+                ],
             )
 
             if total_hits > 0:
@@ -35,7 +35,7 @@ def calculate_accuracy_legacy(
                     statistics["count_100"],
                     statistics["count_50"],
                     statistics["count_miss"],
-                ]
+                ],
             )
 
             if total_hits > 0:
@@ -53,7 +53,7 @@ def calculate_accuracy_legacy(
                     statistics["count_50"],
                     statistics["count_miss"],
                     statistics["count_katu"],
-                ]
+                ],
             )
 
             if total_hits > 0:
@@ -74,7 +74,7 @@ def calculate_accuracy_legacy(
                     statistics["count_miss"],
                     statistics["count_geki"],
                     statistics["count_katu"],
-                ]
+                ],
             )
 
             if total_hits > 0:

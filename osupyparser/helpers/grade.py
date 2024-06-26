@@ -21,7 +21,7 @@ def calculate_grade_legacy(
                     statistics["count_100"],
                     statistics["count_50"],
                     statistics["count_miss"],
-                ]
+                ],
             )
 
             ratio_300 = statistics["count_300"] / total_hits

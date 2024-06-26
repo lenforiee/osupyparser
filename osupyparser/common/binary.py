@@ -5,9 +5,7 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
-from typing import Union
-
-BytesLike = Union[bytes, bytearray, memoryview]
+BytesLike = bytes | bytearray | memoryview
 
 
 class BinaryReader:
