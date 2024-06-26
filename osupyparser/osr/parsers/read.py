@@ -148,8 +148,10 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
     if replay["mods"] & Mods.TARGET:
         replay["target_practice_hits"] = reader.read_f64()
 
-    replay_accuracy = accuracy.calculate_accuracy(statistics, mode=replay["mode"])
-    replay_grade = grade.calculate_grade(
+    replay_accuracy = accuracy.calculate_accuracy_legacy(
+        statistics, mode=replay["mode"]
+    )
+    replay_grade = grade.calculate_grade_legacy(
         statistics,
         accuracy=replay_accuracy,
         mode=replay["mode"],

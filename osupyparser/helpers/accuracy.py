@@ -3,7 +3,7 @@ from __future__ import annotations
 from osupyparser.constants.mode import Mode
 
 
-def calculate_accuracy(
+def calculate_accuracy_legacy(
     statistics: dict[str, int],
     *,
     mode: Mode,

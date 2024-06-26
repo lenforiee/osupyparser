@@ -41,7 +41,7 @@ class OsuReplayFile(BaseModel):
     skip_offset: int
 
     legacy_grade: Grade
-    legac_accuracy: float
+    legacy_accuracy: float
 
     # TODO: lazer_grade and lazer_accuracy
 

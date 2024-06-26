@@ -5,7 +5,7 @@ from osupyparser.constants.mode import Mode
 from osupyparser.constants.mods import Mods
 
 
-def calculate_grade(
+def calculate_grade_legacy(
     statistics: dict[str, int],
     *,
     accuracy: float,
