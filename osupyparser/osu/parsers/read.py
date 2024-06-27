@@ -231,7 +231,9 @@ def _parse_difficulty_section(section_contents: str) -> DifficultySection:
     return DifficultySection(**difficutly_section)
 
 
-def _parse_events_section(section_contents: str) -> EventsSection:
+def _parse_events_section(
+    section_contents: str, *, format_version: int
+) -> EventsSection:
     # TODO: storyboard handling
     events_section: dict[str, Any] = {}
     lines = section_contents.split("\n")
@@ -258,7 +260,7 @@ def _parse_events_section(section_contents: str) -> EventsSection:
                 videos.append(
                     {
                         "filename": _clean_file_name(values[2]),
-                        "start_time": int(values[1]),
+                        "start_time": _get_offset_time(int(values[1]), format_version),
                         "x_offset": int(values[3]),
                         "y_offset": int(values[4]),
                     },
@@ -266,8 +268,8 @@ def _parse_events_section(section_contents: str) -> EventsSection:
             case "2" | "Break":
                 break_periods.append(
                     {
-                        "start_time": int(values[1]),
-                        "end_time": int(values[2]),
+                        "start_time": _get_offset_time(int(values[1]), format_version),
+                        "end_time": _get_offset_time(int(values[2]), format_version),
                     },
                 )
 
@@ -297,7 +299,10 @@ def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
     beatmap["editor"] = _parse_editor_section(sections["editor"])
     beatmap["metadata"] = _parse_metadata_section(sections["metadata"])
     beatmap["difficulty"] = _parse_difficulty_section(sections["difficulty"])
-    beatmap["events"] = _parse_events_section(sections["events"])
+    beatmap["events"] = _parse_events_section(
+        sections["events"],
+        format_version=beatmap["format_version"],
+    )
 
     return OsuBeatmapFile(**beatmap)
 
