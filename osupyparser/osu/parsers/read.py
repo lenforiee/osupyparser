@@ -40,6 +40,10 @@ def _parse_value_from_str(s: str) -> str:
     return s.split(":", 1)[1].strip()
 
 
+def _clean_file_name(filename: str) -> str:
+    return filename.replace("\\", "/").strip('"')
+
+
 def _parse_general_section(
     section_contents: str, *, format_version: int
 ) -> GeneralSection:
@@ -227,6 +231,55 @@ def _parse_difficulty_section(section_contents: str) -> DifficultySection:
     return DifficultySection(**difficutly_section)
 
 
+def _parse_events_section(section_contents: str) -> EventsSection:
+    # TODO: storyboard handling
+    events_section: dict[str, Any] = {}
+    lines = section_contents.split("\n")
+
+    videos = []
+    break_periods = []
+    for line in lines:
+        if not line:
+            continue
+
+        if line.startswith("//"):
+            continue
+
+        values = line.split(",")
+
+        match values[0]:
+            case "0" | "Background":
+                events_section["background"] = {
+                    "filename": _clean_file_name(values[2]),
+                    "x_offset": int(values[3]),
+                    "y_offset": int(values[4]),
+                }
+            case "1" | "Video":
+                videos.append(
+                    {
+                        "filename": _clean_file_name(values[2]),
+                        "start_time": int(values[1]),
+                        "x_offset": int(values[3]),
+                        "y_offset": int(values[4]),
+                    },
+                )
+            case "2" | "Break":
+                break_periods.append(
+                    {
+                        "start_time": int(values[1]),
+                        "end_time": int(values[2]),
+                    },
+                )
+
+    if videos:
+        events_section["videos"] = videos
+
+    if break_periods:
+        events_section["break_periods"] = break_periods
+
+    return EventsSection(**events_section)
+
+
 def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
     beatmap: dict[str, Any] = {}
 
@@ -244,7 +297,7 @@ def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
     beatmap["editor"] = _parse_editor_section(sections["editor"])
     beatmap["metadata"] = _parse_metadata_section(sections["metadata"])
     beatmap["difficulty"] = _parse_difficulty_section(sections["difficulty"])
-    # beatmap["events"] = _parse_events_section(sections["events"])
+    beatmap["events"] = _parse_events_section(sections["events"])
 
     return OsuBeatmapFile(**beatmap)
 
