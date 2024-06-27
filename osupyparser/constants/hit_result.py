@@ -26,8 +26,8 @@ class HitResult(Enum):
     LEGACY_COMBO_INCREASE = "legacy_combo_increase"
 
     @property
-    def order(self) -> int:
-        return _hit_result_order[self]
+    def int_value(self) -> int:
+        return _hit_result_int_value[self]
 
     def get_base_score(self, mode: Mode) -> int:
         match mode:
@@ -86,29 +86,29 @@ class HitResult(Enum):
 
             case _:
                 return (
-                    self.order >= HitResult.MISS.order
-                    and self.order < HitResult.IGNORE_MISS.order
+                    self.int_value >= HitResult.MISS.int_value
+                    and self.int_value < HitResult.IGNORE_MISS.int_value
                 )
 
 
-_hit_result_order = {
-    HitResult.PERFECT: 0,
-    HitResult.GREAT: 1,
-    HitResult.GOOD: 2,
+_hit_result_int_value = {
+    HitResult.NONE: 0,
+    HitResult.MISS: 1,
+    HitResult.MEH: 2,
     HitResult.OK: 3,
-    HitResult.MEH: 4,
-    HitResult.MISS: 5,
-    HitResult.LARGE_TICK_HIT: 6,
-    HitResult.SMALL_TICK_HIT: 7,
-    HitResult.SLIDER_TAIL_HIT: 8,
-    HitResult.LARGE_BONUS: 9,
-    HitResult.SMALL_BONUS: 10,
-    HitResult.LARGE_TICK_MISS: 11,
-    HitResult.SMALL_TICK_MISS: 12,
-    HitResult.IGNORE_HIT: 13,
-    HitResult.IGNORE_MISS: 14,
-    HitResult.NONE: 15,
-    HitResult.COMBO_BREAK: 16,
+    HitResult.GOOD: 4,
+    HitResult.GREAT: 5,
+    HitResult.PERFECT: 6,
+    HitResult.SMALL_TICK_MISS: 7,
+    HitResult.SMALL_TICK_HIT: 8,
+    HitResult.LARGE_TICK_MISS: 9,
+    HitResult.LARGE_TICK_HIT: 10,
+    HitResult.SMALL_BONUS: 11,
+    HitResult.LARGE_BONUS: 12,
+    HitResult.IGNORE_MISS: 13,
+    HitResult.IGNORE_HIT: 14,
+    HitResult.COMBO_BREAK: 15,
+    HitResult.SLIDER_TAIL_HIT: 16,
     HitResult.LEGACY_COMBO_INCREASE: 99,
 }
 
