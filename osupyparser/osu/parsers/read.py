@@ -1,12 +1,252 @@
 from __future__ import annotations
 
+import re
+from typing import Any
 from typing import TextIO
 
 from osupyparser.osu.models.beatmap import OsuBeatmapFile
+from osupyparser.osu.models.sections.difficulty import DifficultySection
+from osupyparser.osu.models.sections.editor import EditorSection
+from osupyparser.osu.models.sections.events import EventsSection
+from osupyparser.osu.models.sections.general import GeneralSection
+from osupyparser.osu.models.sections.metadata import MetadataSection
+
+SECTION_REGEX = re.compile(r"\[([^\]]+)\]\s*((?:.*?\n)+?)(?=\[|$)")
+EARLY_VERSION_TIMING_OFFSET = 24
+
+
+def _split_contents_to_sections(lines: list[str]) -> dict[str, str]:
+    sections: dict[str, str] = {}
+    match_text = "\n".join(lines)
+
+    for match_data in SECTION_REGEX.finditer(match_text):
+        section_name = match_data.group(1).lower()
+        section_contents = match_data.group(2).strip()
+        sections[section_name] = section_contents
+
+    return sections
+
+
+def _get_offset_time(offset: int, format_version: int) -> int:
+    if format_version < 5:
+        return offset + EARLY_VERSION_TIMING_OFFSET
+
+    return offset
+
+
+def _parse_value_from_str(s: str) -> str:
+    """Parses a value from a string."""
+
+    return s.split(":", 1)[1].strip()
+
+
+def _parse_general_section(
+    section_contents: str, *, format_version: int
+) -> GeneralSection:
+    general_section: dict[str, Any] = {}
+    lines = section_contents.split("\n")
+
+    for line in lines:
+        if not line:
+            continue
+
+        value = _parse_value_from_str(line)
+
+        if line.startswith("AudioFilename"):
+            general_section["audio_filename"] = value
+
+        elif line.startswith("AudioLeadIn"):
+            general_section["audio_lead_in"] = int(value)
+
+        elif line.startswith("AudioHash"):
+            general_section["audio_hash"] = value
+
+        elif line.startswith("PreviewTime"):
+            time = int(value)
+            general_section["preview_time"] = (
+                time if time == -1 else _get_offset_time(time, format_version)
+            )
+
+        elif line.startswith("Countdown"):
+            general_section["countdown"] = int(value)
+
+        elif line.startswith("SampleSet"):
+            general_section["sample_set"] = value
+
+        elif line.startswith("SampleVolume"):
+            general_section["sample_volume"] = int(value)
+
+        elif line.startswith("StackLeniency"):
+            general_section["stack_leniency"] = float(value)
+
+        elif line.startswith("Mode"):
+            general_section["mode"] = int(value)
+
+        elif line.startswith("LetterboxInBreaks"):
+            general_section["letterbox_in_breaks"] = value == "1"
+
+        elif line.startswith("StoryFireInFront"):
+            general_section["story_fire_in_front"] = value == "1"
+
+        elif line.startswith("UseSkinSprites"):
+            general_section["use_skin_sprites"] = value == "1"
+
+        elif line.startswith("AlwaysShowPlayfield"):
+            general_section["always_show_playfield"] = value == "1"
+
+        elif line.startswith("OverlayPosition"):
+            general_section["overlay_position"] = value
+
+        elif line.startswith("SkinPreference"):
+            general_section["skin_preference"] = value
+
+        elif line.startswith("EpilepsyWarning"):
+            general_section["epilepsy_warning"] = value == "1"
+
+        elif line.startswith("CountdownOffset"):
+            general_section["countdown_offset"] = int(value)
+
+        elif line.startswith("SpecialStyle"):
+            general_section["special_style"] = value == "1"
+
+        elif line.startswith("WidescreenStoryboard"):
+            general_section["widescreen_storyboard"] = value == "1"
+
+        elif line.startswith("SamplesMatchPlaybackRate"):
+            general_section["samples_match_playback_rate"] = value == "1"
+
+    return GeneralSection(**general_section)
+
+
+def _parse_editor_section(section_contents: str) -> EditorSection:
+    editor_section: dict[str, Any] = {}
+    lines = section_contents.split("\n")
+
+    for line in lines:
+        if not line:
+            continue
+
+        value = _parse_value_from_str(line)
+
+        if line.startswith("Bookmarks"):
+            editor_section["bookmarks"] = [
+                int(x) for x in value.split(",") if x.strip()
+            ]
+
+        elif line.startswith("DistanceSpacing"):
+            editor_section["distance_spacing"] = float(value)
+
+        elif line.startswith("BeatDivisor"):
+            editor_section["beat_divisor"] = int(value)
+
+        elif line.startswith("GridSize"):
+            editor_section["grid_size"] = int(value)
+
+        elif line.startswith("TimelineZoom"):
+            editor_section["timeline_zoom"] = float(value)
+
+    return EditorSection(**editor_section)
+
+
+def _parse_metadata_section(section_contents: str) -> MetadataSection:
+    metadata_section: dict[str, Any] = {}
+    lines = section_contents.split("\n")
+
+    for line in lines:
+        if not line:
+            continue
+
+        value = _parse_value_from_str(line)
+
+        if line.startswith("Title:"):
+            metadata_section["title"] = value
+
+        elif line.startswith("TitleUnicode"):
+            metadata_section["title_unicode"] = value
+
+        elif line.startswith("Artist:"):
+            metadata_section["artist"] = value
+
+        elif line.startswith("ArtistUnicode"):
+            metadata_section["artist_unicode"] = value
+
+        elif line.startswith("Creator"):
+            metadata_section["creator"] = value
+
+        elif line.startswith("Version"):
+            metadata_section["version"] = value
+
+        elif line.startswith("Source"):
+            metadata_section["source"] = value
+
+        elif line.startswith("Tags"):
+            metadata_section["tags"] = [tag for tag in value.split(" ") if tag.strip()]
+
+        elif line.startswith("BeatmapID"):
+            metadata_section["beatmap_id"] = int(value)
+
+        elif line.startswith("BeatmapSetID"):
+            metadata_section["beatmap_set_id"] = int(value)
+
+    return MetadataSection(**metadata_section)
+
+
+def _parse_difficulty_section(section_contents: str) -> DifficultySection:
+    difficutly_section: dict[str, Any] = {}
+    lines = section_contents.split("\n")
+
+    for line in lines:
+        if not line:
+            continue
+
+        value = _parse_value_from_str(line)
+        has_approach_rate = False
+
+        if line.startswith("HPDrainRate"):
+            difficutly_section["hp_drain_rate"] = float(value)
+
+        elif line.startswith("CircleSize"):
+            difficutly_section["circle_size"] = float(value)
+
+        elif line.startswith("OverallDifficulty"):
+            difficutly_section["overall_difficulty"] = float(value)
+
+            if not has_approach_rate:
+                difficutly_section["approach_rate"] = float(value)
+
+        elif line.startswith("ApproachRate"):
+            difficutly_section["approach_rate"] = float(value)
+            has_approach_rate = True
+
+        elif line.startswith("SliderMultiplier"):
+            difficutly_section["slider_multiplier"] = float(value)
+
+        elif line.startswith("SliderTickRate"):
+            difficutly_section["slider_tick_rate"] = float(value)
+
+    return DifficultySection(**difficutly_section)
 
 
 def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
-    ...
+    beatmap: dict[str, Any] = {}
+
+    header = lines.pop(0)
+    if not header.startswith("osu file format v"):
+        raise ValueError("Invalid file format")
+
+    beatmap["format_version"] = int(header.split("osu file format v")[-1])
+    sections = _split_contents_to_sections(lines)
+
+    beatmap["general"] = _parse_general_section(
+        sections["general"],
+        format_version=beatmap["format_version"],
+    )
+    beatmap["editor"] = _parse_editor_section(sections["editor"])
+    beatmap["metadata"] = _parse_metadata_section(sections["metadata"])
+    beatmap["difficulty"] = _parse_difficulty_section(sections["difficulty"])
+    # beatmap["events"] = _parse_events_section(sections["events"])
+
+    return OsuBeatmapFile(**beatmap)
 
 
 def read_osu_file(file_path: str) -> OsuBeatmapFile:

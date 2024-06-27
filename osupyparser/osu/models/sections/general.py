@@ -16,6 +16,7 @@ class GeneralSection(BaseModel):
     preview_time: int = -1
     countdown: Countdown = Countdown.NORMAL
     sample_set: SampleSet = SampleSet.NORMAL
+    sample_volume: int = 100
     stack_leniency: float = 0.7
     mode: Mode = Mode.STANDARD
     letterbox_in_breaks: bool = False
