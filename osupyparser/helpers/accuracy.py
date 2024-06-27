@@ -110,7 +110,7 @@ def calculate_accuracy_lazer(
         if hit_result.affects_accuracy()
     )
 
-    if maximum_base_score == 0:
-        return 1.0
-    else:
+    if maximum_base_score > 0:
         return base_score / maximum_base_score
+    else:
+        return 1.0
