@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from osupyparser.constants.grade import Grade
+from osupyparser.constants.hit_result import HitResult
 from osupyparser.constants.keys import Keys
 from osupyparser.constants.mode import Mode
 from osupyparser.constants.mods import Mods
