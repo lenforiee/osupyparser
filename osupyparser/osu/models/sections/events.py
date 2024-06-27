@@ -9,7 +9,7 @@ from osupyparser.osu.models.events.video import Video
 
 class EventsSection(BaseModel):
     background: Background | None = None
-    videos: list[Video] = []  # NOTE: Video could have multiple instances
-    break_periods: list[BreakPeriod] = []
+    videos: list[Video] | None = None  # NOTE: Video could have multiple instances
+    break_periods: list[BreakPeriod] | None = None
 
     # TODO: storyboard stuff

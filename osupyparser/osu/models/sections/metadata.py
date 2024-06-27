@@ -12,5 +12,6 @@ class MetadataSection(BaseModel):
     version: str
     source: str
     tags: list[str]
-    beatmap_id: int
-    beatmap_set_id: int
+    # back then osu relied on osu file hash and those can be nullable
+    beatmap_id: int = -1
+    beatmap_set_id: int = -1
