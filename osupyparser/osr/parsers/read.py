@@ -191,24 +191,24 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
 
 
 def read_osr_file(file_path: str) -> OsuReplayFile:
-    with open(file_path, "rb") as file_binary:
-        reader = BinaryReader(file_binary.read())
+    with open(file_path, "rb") as file_buffer:
+        reader = BinaryReader(file_buffer.read())
 
     return _parse_replay_contents(reader)
 
 
 def read_osr_file_lzma(file_path: str) -> OsuReplayFileLzma:
-    with open(file_path, "rb") as file_binary:
-        reader = BinaryReader(file_binary.read())
+    with open(file_path, "rb") as file_buffer:
+        reader = BinaryReader(file_buffer.read())
 
     return _parse_replay_contents_lzma(reader)
 
 
-def read_osr_binary(file_binary: BinaryIO) -> OsuReplayFile:
-    reader = BinaryReader(file_binary.read())
+def read_osr_buffer(file_buffer: BinaryIO) -> OsuReplayFile:
+    reader = BinaryReader(file_buffer.read())
     return _parse_replay_contents(reader)
 
 
-def read_osr_binary_lzma(file_binary: BinaryIO) -> OsuReplayFileLzma:
-    reader = BinaryReader(file_binary.read())
+def read_osr_buffer_lzma(file_buffer: BinaryIO) -> OsuReplayFileLzma:
+    reader = BinaryReader(file_buffer.read())
     return _parse_replay_contents_lzma(reader)
