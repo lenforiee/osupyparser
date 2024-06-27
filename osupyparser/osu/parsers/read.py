@@ -5,6 +5,7 @@ from typing import Any
 from typing import TextIO
 
 from osupyparser.osu.models.beatmap import OsuBeatmapFile
+from osupyparser.osu.models.sections.colours import ColoursSection
 from osupyparser.osu.models.sections.difficulty import DifficultySection
 from osupyparser.osu.models.sections.editor import EditorSection
 from osupyparser.osu.models.sections.events import EventsSection
@@ -282,6 +283,40 @@ def _parse_events_section(
     return EventsSection(**events_section)
 
 
+def _parse_colours_section(section_contents: str) -> ColoursSection:
+    colours_section: dict[str, Any] = {}
+    lines = section_contents.split("\n")
+
+    custom_combo_colours = []
+    for line in lines:
+        if not line:
+            continue
+
+        values = _parse_value_from_str(line).split(",")
+
+        colour = {
+            "red": int(values[0]),
+            "green": int(values[1]),
+            "blue": int(values[2]),
+            "alpha": 255,
+            # in some rare cases beatmap has alpha value but for now lazer doesn't use it
+        }
+
+        if line.startswith("Combo"):
+            custom_combo_colours.append(colour)
+
+        elif line.startswith("SliderTrackOverride"):
+            colours_section["slider_track_override_colour"] = colour
+
+        elif line.startswith("SliderBorder"):
+            colours_section["slider_border_colour"] = colour
+
+    if custom_combo_colours:
+        colours_section["custom_combo_colours"] = custom_combo_colours
+
+    return ColoursSection(**colours_section)
+
+
 def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
     beatmap: dict[str, Any] = {}
 
@@ -303,6 +338,7 @@ def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
         sections["events"],
         format_version=beatmap["format_version"],
     )
+    beatmap["colours"] = _parse_colours_section(sections["colours"])
 
     return OsuBeatmapFile(**beatmap)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from osupyparser.osu.models.sections.colours import ColoursSection
 from osupyparser.osu.models.sections.difficulty import DifficultySection
 from osupyparser.osu.models.sections.editor import EditorSection
 from osupyparser.osu.models.sections.events import EventsSection
@@ -18,7 +19,7 @@ class OsuBeatmapFile(BaseModel):
     difficulty: DifficultySection
     events: EventsSection
     # timing_points: ...
-    # colours: ...
+    colours: ColoursSection
     # hit_objects: ...
 
     # TODO: add custom extras
