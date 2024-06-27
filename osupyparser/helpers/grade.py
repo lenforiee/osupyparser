@@ -3,6 +3,7 @@ from __future__ import annotations
 from osupyparser.constants.grade import Grade
 from osupyparser.constants.mode import Mode
 from osupyparser.constants.mods import Mods
+from osupyparser.osr.models.lazer import OsuReplayLazerMod
 
 
 def calculate_grade_legacy(
@@ -70,3 +71,59 @@ def calculate_grade_legacy(
 
         case _:
             raise ValueError(f"Unreachable mode: {mode}")
+
+
+def calculate_grade_lazer(
+    accuracy: float,
+    *,
+    misses: int,
+    mode: Mode,
+    mods: list[OsuReplayLazerMod],
+) -> Grade:
+    is_silver_grade = any(mod.acronym in ("HD", "FL") for mod in mods)
+    match mode:
+        case Mode.STANDARD | Mode.TAIKO | Mode.MANIA:
+            if accuracy == 1.0:
+                grade = Grade.X
+            elif accuracy >= 0.95:
+                grade = Grade.S
+            elif accuracy >= 0.9:
+                grade = Grade.A
+            elif accuracy >= 0.8:
+                grade = Grade.B
+            elif accuracy >= 0.7:
+                grade = Grade.C
+            else:
+                grade = Grade.D
+
+            if (
+                mode in (Mode.STANDARD, Mode.TAIKO)
+                and misses > 0
+                and grade in (Grade.X, Grade.S)
+            ):
+                grade = Grade.A
+
+        case Mode.CATCH:
+            if accuracy == 1.0:
+                grade = Grade.X
+            elif accuracy >= 0.98:
+                grade = Grade.S
+            elif accuracy >= 0.94:
+                grade = Grade.A
+            elif accuracy >= 0.9:
+                grade = Grade.B
+            elif accuracy >= 0.85:
+                grade = Grade.C
+            else:
+                grade = Grade.D
+
+        case _:
+            raise ValueError(f"Unreachable mode: {mode}")
+
+    if is_silver_grade:
+        if grade == Grade.X:
+            grade = Grade.XH
+        elif grade == Grade.S:
+            grade = Grade.SH
+
+    return grade

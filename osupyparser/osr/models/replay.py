@@ -43,7 +43,9 @@ class OsuReplayFile(BaseModel):
     legacy_grade: Grade
     legacy_accuracy: float
 
-    # TODO: lazer_grade and lazer_accuracy
+    # Can be only calculated if the replay has lazer data
+    lazer_grade: Grade | None = None
+    lazer_accuracy: float | None = None
 
     online_score_id: int | None = None
 

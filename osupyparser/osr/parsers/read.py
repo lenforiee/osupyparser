@@ -6,6 +6,7 @@ from typing import Any
 from typing import BinaryIO
 
 from osupyparser.common.binary import BinaryReader
+from osupyparser.constants.hit_result import HitResult
 from osupyparser.constants.mode import Mode
 from osupyparser.constants.mods import Mods
 from osupyparser.helpers import accuracy
@@ -167,6 +168,23 @@ def _parse_replay_contents(reader: BinaryReader) -> OsuReplayFile:
             reader,
             length=replay_lazer_data_len,
         )
+
+        replay_accuracy_lazer = accuracy.calculate_accuracy_lazer(
+            replay_lazer_data.statistics,
+            replay_lazer_data.maximum_statistics,
+            mode=replay["mode"],
+        )
+
+        miss_count = replay_lazer_data.statistics.get(HitResult.MISS, 0)
+        replay_grade_lazer = grade.calculate_grade_lazer(
+            replay_accuracy_lazer,
+            misses=miss_count,
+            mode=replay["mode"],
+            mods=replay_lazer_data.mods,
+        )
+
+        replay["lazer_accuracy"] = round(replay_accuracy_lazer * 100, 4)
+        replay["lazer_grade"] = replay_grade_lazer
         replay["lazer_data"] = replay_lazer_data
 
     return OsuReplayFile(**replay)
