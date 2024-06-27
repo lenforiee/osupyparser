@@ -299,7 +299,7 @@ def _parse_colours_section(section_contents: str) -> ColoursSection:
             "green": int(values[1]),
             "blue": int(values[2]),
             "alpha": 255,
-            # in some rare cases beatmap has alpha value but for now lazer doesn't use it
+            # NOTE: it seems like lazer might support alpha in near future but for now it doesn't
         }
 
         if line.startswith("Combo"):
