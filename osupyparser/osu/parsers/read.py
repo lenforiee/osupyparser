@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 from typing import TextIO
+from typing import TypedDict
 
+from osupyparser.constants.effects import Effects
+from osupyparser.constants.sample_set import SampleSet
+from osupyparser.constants.time_signature import TimeSignature
 from osupyparser.osu.models.beatmap import OsuBeatmapFile
 from osupyparser.osu.models.sections.colours import ColoursSection
 from osupyparser.osu.models.sections.difficulty import DifficultySection
@@ -11,6 +16,8 @@ from osupyparser.osu.models.sections.editor import EditorSection
 from osupyparser.osu.models.sections.events import EventsSection
 from osupyparser.osu.models.sections.general import GeneralSection
 from osupyparser.osu.models.sections.metadata import MetadataSection
+from osupyparser.osu.models.timing_point import TimingPoint
+
 
 SECTION_REGEX = re.compile(r"\[([^\]]+)\]\s*((?:.*?\n)+?)(?=\[|$)")
 EARLY_VERSION_TIMING_OFFSET = 24
@@ -317,14 +324,109 @@ def _parse_colours_section(section_contents: str) -> ColoursSection:
     return ColoursSection(**colours_section)
 
 
+class ParsedTimingPointsData(TypedDict):
+    timing_points: list[TimingPoint]
+    minimum_bpm: float
+    maximum_bpm: float
+
+
+def _parse_timing_points_section(
+    section_contents: str,
+    *,
+    format_version: int,
+    beatmap_sample_set: SampleSet,
+    beatmap_sample_volume: int,
+) -> ParsedTimingPointsData:
+
+    timing_points = []
+    minimum_bpm = float("inf")
+    maximum_bpm = float("-inf")
+
+    lines = section_contents.split("\n")
+
+    for line in lines:
+        if not line:
+            continue
+
+        timing_point: dict[str, Any] = {}
+        values = line.split(",")
+
+        timing_point["start_time"] = _get_offset_time(int(values[0]), format_version)
+        timing_point["beat_length"] = float(values[1])
+
+        timing_point["slider_velocity"] = (
+            100 / -timing_point["beat_length"] if timing_point["beat_length"] < 0 else 1
+        )
+
+        time_signature = TimeSignature.SimpleQuadruple()
+        if len(values) >= 3:
+            time_signature = (
+                time_signature
+                if values[2] == "0"
+                else TimeSignature(numerator=int(values[2]))
+            )
+        timing_point["time_signature"] = time_signature
+
+        sample_set = beatmap_sample_set
+        if len(values) >= 4:
+            sample_set = SampleSet.from_int_enum(int(values[3]))
+        timing_point["sample_set"] = sample_set
+
+        custom_sample_bank = 0
+        if len(values) >= 5:
+            custom_sample_bank = int(values[4])
+        timing_point["custom_sample_bank"] = custom_sample_bank
+
+        sample_volume = beatmap_sample_volume
+        if len(values) >= 6:
+            sample_volume = int(values[5])
+        timing_point["sample_volume"] = sample_volume
+
+        timing_change = True
+        if len(values) >= 7:
+            timing_change = values[6] == "1"
+        timing_point["timing_change"] = timing_change
+
+        kiai_mode = False
+        omit_first_bar_line = False
+
+        if len(values) >= 8:
+            effects = Effects(int(values[7]))
+            kiai_mode = effects.has_kiai()
+            omit_first_bar_line = effects.has_omit_first_bar_line()
+
+        timing_point["kiai_mode"] = kiai_mode
+        timing_point["omit_first_bar_line"] = omit_first_bar_line
+
+        if timing_point["timing_change"]:
+            current_bpm = round(60000 / timing_point["beat_length"])
+            minimum_bpm = min(minimum_bpm, current_bpm) if minimum_bpm else current_bpm
+            maximum_bpm = max(maximum_bpm, current_bpm) if maximum_bpm else current_bpm
+
+        timing_points.append(TimingPoint(**timing_point))
+
+    return ParsedTimingPointsData(
+        timing_points=timing_points,
+        minimum_bpm=minimum_bpm,
+        maximum_bpm=maximum_bpm,
+    )
+
+
+def _parse_hit_objects_section(section_contents: str, *, format_version: int) -> ...:
+    ...
+
+
 def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
     beatmap: dict[str, Any] = {}
+    beatmap["file_hash"] = hashlib.md5("\n".join(lines).encode()).hexdigest()
 
     header = lines.pop(0)
     if not header.startswith("osu file format v"):
-        raise ValueError("Invalid file format")
+        raise ValueError(
+            f"Invalid beatmap file format, expected: 'osu file format v', got: {header}",
+        )
 
-    beatmap["format_version"] = int(header.split("osu file format v")[-1])
+    beatmap["format_version"] = int(header.split("v")[-1])
     sections = _split_contents_to_sections(lines)
 
     beatmap["general"] = _parse_general_section(
@@ -338,7 +440,22 @@ def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
         sections["events"],
         format_version=beatmap["format_version"],
     )
+
+    parsed_timing_points_data = _parse_timing_points_section(
+        sections["timingpoints"],
+        format_version=beatmap["format_version"],
+        beatmap_sample_set=beatmap["general"].sample_set,
+        beatmap_sample_volume=beatmap["general"].sample_volume,
+    )
+    beatmap["timing_points"] = parsed_timing_points_data["timing_points"]
+    beatmap["minimum_bpm"] = parsed_timing_points_data["minimum_bpm"]
+    beatmap["maximum_bpm"] = parsed_timing_points_data["maximum_bpm"]
+
     beatmap["colours"] = _parse_colours_section(sections["colours"])
+    beatmap["hit_objects"] = _parse_hit_objects_section(
+        sections["hitobjects"],
+        format_version=beatmap["format_version"],
+    )
 
     return OsuBeatmapFile(**beatmap)
 

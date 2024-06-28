@@ -8,18 +8,21 @@ from osupyparser.osu.models.sections.editor import EditorSection
 from osupyparser.osu.models.sections.events import EventsSection
 from osupyparser.osu.models.sections.general import GeneralSection
 from osupyparser.osu.models.sections.metadata import MetadataSection
+from osupyparser.osu.models.timing_point import TimingPoint
 
 
 class OsuBeatmapFile(BaseModel):
     format_version: int
+    file_hash: str
 
     general: GeneralSection
     editor: EditorSection
     metadata: MetadataSection
     difficulty: DifficultySection
     events: EventsSection
-    # timing_points: ...
+    timing_points: list[TimingPoint]
     colours: ColoursSection
-    # hit_objects: ...
+    # hit_objects: list[...]
 
-    # TODO: add custom extras
+    minimum_bpm: float
+    maximum_bpm: float
