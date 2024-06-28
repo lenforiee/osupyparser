@@ -383,7 +383,7 @@ def _parse_timing_points_section(
         timing_point["sample_volume"] = sample_volume
 
         timing_change = True
-        if len(values) >= 7:
+        if len(values) >= 7:  # also known as "uninherited"
             timing_change = values[6] == "1"
         timing_point["timing_change"] = timing_change
 
@@ -423,7 +423,7 @@ def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
     header = lines.pop(0)
     if not header.startswith("osu file format v"):
         raise ValueError(
-            f"Invalid beatmap file format, expected: 'osu file format v', got: {header}",
+            f"Invalid beatmap file format, expected header: 'osu file format v', got: '{header}'",
         )
 
     beatmap["format_version"] = int(header.split("v")[-1])
