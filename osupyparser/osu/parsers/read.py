@@ -331,7 +331,9 @@ def _parse_events_section(
     return EventsSection(**events_section)
 
 
-def _parse_colours_section(section_contents: bytearray) -> ColoursSection:
+def _parse_colours_section(
+    section_contents: bytearray, *, allow_alpha: bool
+) -> ColoursSection:
     colours_section: dict[str, Any] = {}
     lines = section_contents.split(b"\n")
 
@@ -348,6 +350,9 @@ def _parse_colours_section(section_contents: bytearray) -> ColoursSection:
             "blue": int(values[2]),
             "alpha": 255,
         }
+
+        if allow_alpha and len(values) >= 4:
+            colour["alpha"] = int(values[3])
 
         if line.startswith(b"Combo"):
             custom_combo_colours.append(colour)
@@ -495,7 +500,7 @@ def _parse_beatmap_contents(buffer_bytes: bytearray) -> OsuBeatmapFile:
     beatmap["minimum_bpm"] = parsed_timing_points_data["minimum_bpm"]
     beatmap["maximum_bpm"] = parsed_timing_points_data["maximum_bpm"]
 
-    beatmap["colours"] = _parse_colours_section(sections["colours"])
+    beatmap["colours"] = _parse_colours_section(sections["colours"], allow_alpha=False)
     beatmap["hit_objects"] = _parse_hit_objects_section(
         sections["hitobjects"],
         format_version=beatmap["format_version"],
