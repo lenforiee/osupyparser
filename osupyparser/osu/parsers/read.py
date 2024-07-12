@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import re
 from typing import Any
-from typing import TextIO
 from typing import TypedDict
 
 from osupyparser.constants.effects import Effects
@@ -19,17 +18,19 @@ from osupyparser.osu.models.sections.metadata import MetadataSection
 from osupyparser.osu.models.timing_point import TimingPoint
 
 
-SECTION_REGEX = re.compile(r"\[([^\]]+)\]\s*((?:.*?\n)+?)(?=\[|$)")
+SECTION_REGEX = re.compile(rb"\[([^\]]+)\]\s*((?:.*?\n)+?)(?=\[|$)")
 EARLY_VERSION_TIMING_OFFSET = 24
 
+BytesLike = bytes | bytearray | memoryview
 
-def _split_contents_to_sections(lines: list[str]) -> dict[str, str]:
-    sections: dict[str, str] = {}
-    match_text = "\n".join(lines)
+
+def _split_contents_to_sections(lines: list[bytearray]) -> dict[str, bytearray]:
+    sections: dict[str, bytearray] = {}
+    match_text = b"\n".join(lines)
 
     for match_data in SECTION_REGEX.finditer(match_text):
-        section_name = match_data.group(1).lower()
-        section_contents = match_data.group(2).strip()
+        section_name = _decode_osu_str(match_data.group(1).lower())
+        section_contents = bytearray(match_data.group(2).strip())
         sections[section_name] = section_contents
 
     return sections
@@ -42,21 +43,23 @@ def _get_offset_time(offset: int, format_version: int) -> int:
     return offset
 
 
-def _parse_value_from_str(s: str) -> str:
-    """Parses a value from a string."""
-
-    return s.split(":", 1)[1].strip()
+def _decode_osu_str(s: bytearray | bytes) -> str:
+    return s.decode("utf-8-sig", errors="ignore")
 
 
-def _clean_file_name(filename: str) -> str:
-    return filename.replace("\\", "/").strip('"')
+def _parse_value_from_str(s: bytearray) -> str:
+    return _decode_osu_str(s.split(b":", 1)[1].strip())
+
+
+def _clean_file_name(filename: bytearray) -> str:
+    return _decode_osu_str(filename.replace(b"\\", b"/").strip(b'"'))
 
 
 def _parse_general_section(
-    section_contents: str, *, format_version: int
+    section_contents: bytearray, *, format_version: int
 ) -> GeneralSection:
     general_section: dict[str, Any] = {}
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     for line in lines:
         if not line:
@@ -64,75 +67,75 @@ def _parse_general_section(
 
         value = _parse_value_from_str(line)
 
-        if line.startswith("AudioFilename"):
+        if line.startswith(b"AudioFilename"):
             general_section["audio_filename"] = value
 
-        elif line.startswith("AudioLeadIn"):
+        elif line.startswith(b"AudioLeadIn"):
             general_section["audio_lead_in"] = int(value)
 
-        elif line.startswith("AudioHash"):
+        elif line.startswith(b"AudioHash"):
             general_section["audio_hash"] = value
 
-        elif line.startswith("PreviewTime"):
+        elif line.startswith(b"PreviewTime"):
             time = int(value)
             general_section["preview_time"] = (
                 time if time == -1 else _get_offset_time(time, format_version)
             )
 
-        elif line.startswith("Countdown"):
+        elif line.startswith(b"Countdown"):
             general_section["countdown"] = int(value)
 
-        elif line.startswith("SampleSet"):
+        elif line.startswith(b"SampleSet"):
             general_section["sample_set"] = value
 
-        elif line.startswith("SampleVolume"):
+        elif line.startswith(b"SampleVolume"):
             general_section["sample_volume"] = int(value)
 
-        elif line.startswith("StackLeniency"):
+        elif line.startswith(b"StackLeniency"):
             general_section["stack_leniency"] = float(value)
 
-        elif line.startswith("Mode"):
+        elif line.startswith(b"Mode"):
             general_section["mode"] = int(value)
 
-        elif line.startswith("LetterboxInBreaks"):
+        elif line.startswith(b"LetterboxInBreaks"):
             general_section["letterbox_in_breaks"] = value == "1"
 
-        elif line.startswith("StoryFireInFront"):
+        elif line.startswith(b"StoryFireInFront"):
             general_section["story_fire_in_front"] = value == "1"
 
-        elif line.startswith("UseSkinSprites"):
+        elif line.startswith(b"UseSkinSprites"):
             general_section["use_skin_sprites"] = value == "1"
 
-        elif line.startswith("AlwaysShowPlayfield"):
+        elif line.startswith(b"AlwaysShowPlayfield"):
             general_section["always_show_playfield"] = value == "1"
 
-        elif line.startswith("OverlayPosition"):
+        elif line.startswith(b"OverlayPosition"):
             general_section["overlay_position"] = value
 
-        elif line.startswith("SkinPreference"):
+        elif line.startswith(b"SkinPreference"):
             general_section["skin_preference"] = value
 
-        elif line.startswith("EpilepsyWarning"):
+        elif line.startswith(b"EpilepsyWarning"):
             general_section["epilepsy_warning"] = value == "1"
 
-        elif line.startswith("CountdownOffset"):
+        elif line.startswith(b"CountdownOffset"):
             general_section["countdown_offset"] = int(value)
 
-        elif line.startswith("SpecialStyle"):
+        elif line.startswith(b"SpecialStyle"):
             general_section["special_style"] = value == "1"
 
-        elif line.startswith("WidescreenStoryboard"):
+        elif line.startswith(b"WidescreenStoryboard"):
             general_section["widescreen_storyboard"] = value == "1"
 
-        elif line.startswith("SamplesMatchPlaybackRate"):
+        elif line.startswith(b"SamplesMatchPlaybackRate"):
             general_section["samples_match_playback_rate"] = value == "1"
 
     return GeneralSection(**general_section)
 
 
-def _parse_editor_section(section_contents: str) -> EditorSection:
+def _parse_editor_section(section_contents: bytearray) -> EditorSection:
     editor_section: dict[str, Any] = {}
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     for line in lines:
         if not line:
@@ -140,29 +143,29 @@ def _parse_editor_section(section_contents: str) -> EditorSection:
 
         value = _parse_value_from_str(line)
 
-        if line.startswith("Bookmarks"):
+        if line.startswith(b"Bookmarks"):
             editor_section["bookmarks"] = [
                 int(x) for x in value.split(",") if x.strip()
             ]
 
-        elif line.startswith("DistanceSpacing"):
+        elif line.startswith(b"DistanceSpacing"):
             editor_section["distance_spacing"] = float(value)
 
-        elif line.startswith("BeatDivisor"):
+        elif line.startswith(b"BeatDivisor"):
             editor_section["beat_divisor"] = int(value)
 
-        elif line.startswith("GridSize"):
+        elif line.startswith(b"GridSize"):
             editor_section["grid_size"] = int(value)
 
-        elif line.startswith("TimelineZoom"):
+        elif line.startswith(b"TimelineZoom"):
             editor_section["timeline_zoom"] = float(value)
 
     return EditorSection(**editor_section)
 
 
-def _parse_metadata_section(section_contents: str) -> MetadataSection:
+def _parse_metadata_section(section_contents: bytearray) -> MetadataSection:
     metadata_section: dict[str, Any] = {}
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     for line in lines:
         if not line:
@@ -170,42 +173,42 @@ def _parse_metadata_section(section_contents: str) -> MetadataSection:
 
         value = _parse_value_from_str(line)
 
-        if line.startswith("Title:"):
+        if line.startswith(b"Title:"):
             metadata_section["title"] = value
 
-        elif line.startswith("TitleUnicode"):
+        elif line.startswith(b"TitleUnicode"):
             metadata_section["title_unicode"] = value
 
-        elif line.startswith("Artist:"):
+        elif line.startswith(b"Artist:"):
             metadata_section["artist"] = value
 
-        elif line.startswith("ArtistUnicode"):
+        elif line.startswith(b"ArtistUnicode"):
             metadata_section["artist_unicode"] = value
 
-        elif line.startswith("Creator"):
+        elif line.startswith(b"Creator"):
             metadata_section["creator"] = value
 
-        elif line.startswith("Version"):
+        elif line.startswith(b"Version"):
             metadata_section["version"] = value
 
-        elif line.startswith("Source"):
+        elif line.startswith(b"Source"):
             metadata_section["source"] = value
 
-        elif line.startswith("Tags"):
+        elif line.startswith(b"Tags"):
             metadata_section["tags"] = [tag for tag in value.split(" ") if tag.strip()]
 
-        elif line.startswith("BeatmapID"):
+        elif line.startswith(b"BeatmapID"):
             metadata_section["beatmap_id"] = int(value)
 
-        elif line.startswith("BeatmapSetID"):
+        elif line.startswith(b"BeatmapSetID"):
             metadata_section["beatmap_set_id"] = int(value)
 
     return MetadataSection(**metadata_section)
 
 
-def _parse_difficulty_section(section_contents: str) -> DifficultySection:
+def _parse_difficulty_section(section_contents: bytearray) -> DifficultySection:
     difficutly_section: dict[str, Any] = {}
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     for line in lines:
         if not line:
@@ -214,37 +217,37 @@ def _parse_difficulty_section(section_contents: str) -> DifficultySection:
         value = _parse_value_from_str(line)
         has_approach_rate = False
 
-        if line.startswith("HPDrainRate"):
+        if line.startswith(b"HPDrainRate"):
             difficutly_section["hp_drain_rate"] = float(value)
 
-        elif line.startswith("CircleSize"):
+        elif line.startswith(b"CircleSize"):
             difficutly_section["circle_size"] = float(value)
 
-        elif line.startswith("OverallDifficulty"):
+        elif line.startswith(b"OverallDifficulty"):
             difficutly_section["overall_difficulty"] = float(value)
 
             if not has_approach_rate:
                 difficutly_section["approach_rate"] = float(value)
 
-        elif line.startswith("ApproachRate"):
+        elif line.startswith(b"ApproachRate"):
             difficutly_section["approach_rate"] = float(value)
             has_approach_rate = True
 
-        elif line.startswith("SliderMultiplier"):
+        elif line.startswith(b"SliderMultiplier"):
             difficutly_section["slider_multiplier"] = float(value)
 
-        elif line.startswith("SliderTickRate"):
+        elif line.startswith(b"SliderTickRate"):
             difficutly_section["slider_tick_rate"] = float(value)
 
     return DifficultySection(**difficutly_section)
 
 
 def _parse_events_section(
-    section_contents: str, *, format_version: int
+    section_contents: bytearray, *, format_version: int
 ) -> EventsSection:
     # TODO: storyboard handling
     events_section: dict[str, Any] = {}
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     videos = []
     break_periods = []
@@ -252,28 +255,42 @@ def _parse_events_section(
         if not line:
             continue
 
-        if line.startswith("//"):
+        if line.startswith(b"//"):
             continue
 
-        values = line.split(",")
+        values = line.split(b",")
 
         match values[0]:
-            case "0" | "Background":
+            case b"0" | b"Background":
                 events_section["background"] = {
                     "filename": _clean_file_name(values[2]),
-                    "x_offset": int(values[3]),
-                    "y_offset": int(values[4]),
+                    "x_offset": 0,
+                    "y_offset": 0,
                 }
-            case "1" | "Video":
-                videos.append(
-                    {
-                        "filename": _clean_file_name(values[2]),
-                        "start_time": _get_offset_time(int(values[1]), format_version),
-                        "x_offset": int(values[3]),
-                        "y_offset": int(values[4]),
-                    },
-                )
-            case "2" | "Break":
+
+                if len(values) > 3:
+                    events_section["background"]["x_offset"] = int(values[3])
+
+                if len(values) > 4:
+                    events_section["background"]["y_offset"] = int(values[4])
+
+            case b"1" | b"Video":
+                video: dict[str, Any] = {
+                    "filename": _clean_file_name(values[2]),
+                    "start_time": _get_offset_time(int(values[1]), format_version),
+                    "x_offset": 0,
+                    "y_offset": 0,
+                }
+
+                if len(values) > 3:
+                    video["x_offset"] = int(values[3])
+
+                if len(values) > 4:
+                    video["y_offset"] = int(values[4])
+
+                videos.append(video)
+
+            case b"2" | b"Break":
                 break_periods.append(
                     {
                         "start_time": _get_offset_time(int(values[1]), format_version),
@@ -290,9 +307,9 @@ def _parse_events_section(
     return EventsSection(**events_section)
 
 
-def _parse_colours_section(section_contents: str) -> ColoursSection:
+def _parse_colours_section(section_contents: bytearray) -> ColoursSection:
     colours_section: dict[str, Any] = {}
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     custom_combo_colours = []
     for line in lines:
@@ -306,16 +323,15 @@ def _parse_colours_section(section_contents: str) -> ColoursSection:
             "green": int(values[1]),
             "blue": int(values[2]),
             "alpha": 255,
-            # NOTE: it seems like lazer might support alpha in near future but for now it doesn't
         }
 
-        if line.startswith("Combo"):
+        if line.startswith(b"Combo"):
             custom_combo_colours.append(colour)
 
-        elif line.startswith("SliderTrackOverride"):
+        elif line.startswith(b"SliderTrackOverride"):
             colours_section["slider_track_override_colour"] = colour
 
-        elif line.startswith("SliderBorder"):
+        elif line.startswith(b"SliderBorder"):
             colours_section["slider_border_colour"] = colour
 
     if custom_combo_colours:
@@ -331,7 +347,7 @@ class ParsedTimingPointsData(TypedDict):
 
 
 def _parse_timing_points_section(
-    section_contents: str,
+    section_contents: bytearray,
     *,
     format_version: int,
     beatmap_sample_set: SampleSet,
@@ -342,14 +358,14 @@ def _parse_timing_points_section(
     minimum_bpm = float("inf")
     maximum_bpm = float("-inf")
 
-    lines = section_contents.split("\n")
+    lines = section_contents.split(b"\n")
 
     for line in lines:
         if not line:
             continue
 
         timing_point: dict[str, Any] = {}
-        values = line.split(",")
+        values = line.split(b",")
 
         timing_point["start_time"] = _get_offset_time(int(values[0]), format_version)
         timing_point["beat_length"] = float(values[1])
@@ -362,7 +378,7 @@ def _parse_timing_points_section(
         if len(values) >= 3:
             time_signature = (
                 time_signature
-                if values[2] == "0"
+                if values[2] == b"0"
                 else TimeSignature(numerator=int(values[2]))
             )
         timing_point["time_signature"] = time_signature
@@ -384,7 +400,7 @@ def _parse_timing_points_section(
 
         timing_change = True
         if len(values) >= 7:  # also known as "uninherited"
-            timing_change = values[6] == "1"
+            timing_change = values[6] == b"1"
         timing_point["timing_change"] = timing_change
 
         kiai_mode = False
@@ -412,21 +428,25 @@ def _parse_timing_points_section(
     )
 
 
-def _parse_hit_objects_section(section_contents: str, *, format_version: int) -> ...:
+def _parse_hit_objects_section(
+    section_contents: bytearray, *, format_version: int
+) -> ...:
     ...
 
 
-def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
+def _parse_beatmap_contents(buffer_bytes: bytearray) -> OsuBeatmapFile:
     beatmap: dict[str, Any] = {}
-    beatmap["file_hash"] = hashlib.md5("\n".join(lines).encode()).hexdigest()
+    beatmap["file_hash"] = hashlib.md5(buffer_bytes).hexdigest()
+
+    lines = buffer_bytes.replace(b"\r\n", b"\n").split(b"\n")
 
     header = lines.pop(0)
-    if not header.startswith("osu file format v"):
+    if not header.startswith(b"osu file format v"):
         raise ValueError(
             f"Invalid beatmap file format, expected header: 'osu file format v', got: '{header}'",
         )
 
-    beatmap["format_version"] = int(header.split("v")[-1])
+    beatmap["format_version"] = int(header.split(b"v")[-1])
     sections = _split_contents_to_sections(lines)
 
     beatmap["general"] = _parse_general_section(
@@ -461,12 +481,13 @@ def _parse_beatmap_contents(lines: list[str]) -> OsuBeatmapFile:
 
 
 def read_osu_file(file_path: str) -> OsuBeatmapFile:
-    with open(file_path, encoding="utf-8-sig", errors="ignore") as file_buffer:
-        lines = file_buffer.readlines()
+    with open(file_path, "rb") as file_buffer:
+        buffer_bytes = bytearray(file_buffer.read())
 
-    return _parse_beatmap_contents(lines)
+    return _parse_beatmap_contents(buffer_bytes)
 
 
-def read_osu_buffer(file_buffer: TextIO) -> OsuBeatmapFile:
-    lines = file_buffer.readlines()
-    return _parse_beatmap_contents(lines)
+def read_osu_buffer(file_buffer: BytesLike) -> OsuBeatmapFile:
+    buffer_bytes = bytearray(file_buffer)
+
+    return _parse_beatmap_contents(buffer_bytes)

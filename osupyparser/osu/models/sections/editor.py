@@ -8,4 +8,4 @@ class EditorSection(BaseModel):
     distance_spacing: float
     beat_divisor: int
     grid_size: int
-    timeline_zoom: float
+    timeline_zoom: float = 1.0  # can be null

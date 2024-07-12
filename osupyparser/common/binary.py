@@ -5,8 +5,6 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
-BytesLike = bytes | bytearray | memoryview
-
 
 class BinaryReader:
     __slots__ = (
@@ -14,9 +12,9 @@ class BinaryReader:
         "__offset",
     )
 
-    def __init__(self, bytes_data: BytesLike) -> None:
-        self.__buffer: bytearray = bytearray(bytes_data)
-        self.__offset: int = 0
+    def __init__(self, bytes_data: memoryview) -> None:
+        self.__buffer = bytes_data
+        self.__offset = 0
 
     def __len__(self) -> int:
         return len(self.__buffer)
@@ -29,7 +27,7 @@ class BinaryReader:
 
         data = self.__buffer[self.__offset : self.__offset + offset]
         self.__offset += offset
-        return data
+        return data.tobytes()
 
     def read_int(self, size: int, signed: bool) -> int:
         """Read a int."""
