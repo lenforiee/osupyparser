@@ -20,6 +20,7 @@ from osupyparser.osu.models.timing_point import TimingPoint
 
 SECTION_REGEX = re.compile(rb"\[([^\]]+)\]\s*((?:.*?\n)+?)(?=\[|$)")
 EARLY_VERSION_TIMING_OFFSET = 24
+VIDEO_EXTENSIONS = {"mp4", "mov", "avi", "flv", "mpg", "wmv", "m4v"}
 
 BytesLike = bytes | bytearray | memoryview
 
@@ -261,6 +262,16 @@ def _parse_events_section(
         values = line.split(b",")
 
         match values[0]:
+            case b"4" | b"Sprite":
+                # Edge case where some older beatmaps have their background replaced
+                # with storyboard-based background, we will use first sprite as background
+                if "background" not in events_section:
+                    events_section["background"] = {
+                        "filename": _clean_file_name(values[3]),
+                        "x_offset": 0,
+                        "y_offset": 0,
+                    }
+
             case b"0" | b"Background":
                 events_section["background"] = {
                     "filename": _clean_file_name(values[2]),
@@ -275,8 +286,21 @@ def _parse_events_section(
                     events_section["background"]["y_offset"] = int(values[4])
 
             case b"1" | b"Video":
+                filename = _clean_file_name(values[2])
+
+                # Another edge case where some beatmaps had incorrect type specifications
+                # for their backgrounds, (ie. using 1 for VIDEO instead of 0 for BACKGROUND)
+                # We will do check from osu!lazer and treat it as background if needed
+                if filename.split(".")[-1] not in VIDEO_EXTENSIONS:
+                    events_section["background"] = {
+                        "filename": filename,
+                        "x_offset": 0,
+                        "y_offset": 0,
+                    }
+                    continue
+
                 video: dict[str, Any] = {
-                    "filename": _clean_file_name(values[2]),
+                    "filename": filename,
                     "start_time": _get_offset_time(int(values[1]), format_version),
                     "x_offset": 0,
                     "y_offset": 0,
