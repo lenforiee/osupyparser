@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from osupyparser.osu.models.hit_objects import HitObjectCircle
+from osupyparser.osu.models.hit_objects import HitObjectHold
+from osupyparser.osu.models.hit_objects import HitObjectSlider
+from osupyparser.osu.models.hit_objects import HitObjectSpinner
 from osupyparser.osu.models.sections.colours import ColoursSection
 from osupyparser.osu.models.sections.difficulty import DifficultySection
 from osupyparser.osu.models.sections.editor import EditorSection
@@ -22,7 +26,16 @@ class OsuBeatmapFile(BaseModel):
     events: EventsSection
     timing_points: list[TimingPoint]
     colours: ColoursSection
-    # hit_objects: list[...]
+    hit_objects: list[
+        HitObjectCircle | HitObjectSlider | HitObjectSpinner | HitObjectHold
+    ]
 
     minimum_bpm: float
     maximum_bpm: float
+
+    circle_count: int
+    slider_count: int
+    spinner_count: int
+    hold_count: int
+
+    # TODO: add max_combo, play_time, drain_time, break_time

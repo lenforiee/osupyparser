@@ -5,10 +5,18 @@ import re
 from typing import Any
 from typing import TypedDict
 
+from osupyparser.constants.curve_type import CurveType
 from osupyparser.constants.effects import Effects
+from osupyparser.constants.hit_object import HitObject
 from osupyparser.constants.sample_set import SampleSet
 from osupyparser.constants.time_signature import TimeSignature
+from osupyparser.helpers import algorithms
 from osupyparser.osu.models.beatmap import OsuBeatmapFile
+from osupyparser.osu.models.hit_objects import CustomHitSample
+from osupyparser.osu.models.hit_objects import HitObjectCircle
+from osupyparser.osu.models.hit_objects import HitObjectHold
+from osupyparser.osu.models.hit_objects import HitObjectSlider
+from osupyparser.osu.models.hit_objects import HitObjectSpinner
 from osupyparser.osu.models.sections.colours import ColoursSection
 from osupyparser.osu.models.sections.difficulty import DifficultySection
 from osupyparser.osu.models.sections.editor import EditorSection
@@ -54,6 +62,28 @@ def _parse_value_from_str(s: bytearray) -> str:
 
 def _clean_file_name(filename: bytearray) -> str:
     return _decode_osu_str(filename.replace(b"\\", b"/").strip(b'"'))
+
+
+def _create_custom_hit_sample(values: list[bytearray]) -> CustomHitSample:
+
+    # These 2 should always be present
+    hit_sample: dict[str, Any] = {
+        "normal_set": SampleSet.from_int_enum(int(values[0])),
+        "addition_set": SampleSet.from_int_enum(int(values[1])),
+    }
+
+    if len(values) >= 3:
+        hit_sample["sample_index"] = int(values[2])
+
+    if len(values) >= 4:
+        hit_sample["sample_volume"] = int(values[3])
+
+    if len(values) >= 5:
+        filename = _clean_file_name(values[4])
+        hit_sample["sample_filename"] = filename
+        hit_sample["is_beatmap_sample"] = bool(filename.strip())
+
+    return CustomHitSample(**hit_sample)
 
 
 def _parse_general_section(
@@ -417,10 +447,10 @@ def _parse_timing_points_section(
             sample_set = SampleSet.from_int_enum(int(values[3]))
         timing_point["sample_set"] = sample_set
 
-        custom_sample_bank = 0
+        sample_index = 0
         if len(values) >= 5:
-            custom_sample_bank = int(values[4])
-        timing_point["custom_sample_bank"] = custom_sample_bank
+            sample_index = int(values[4])
+        timing_point["sample_index"] = sample_index
 
         sample_volume = beatmap_sample_volume
         if len(values) >= 6:
@@ -457,10 +487,184 @@ def _parse_timing_points_section(
     )
 
 
+class ParsedHitObjectsData(TypedDict):
+    hit_objects: list[
+        HitObjectCircle | HitObjectSlider | HitObjectSpinner | HitObjectHold
+    ]
+    circle_count: int
+    slider_count: int
+    spinner_count: int
+    hold_count: int
+
+
 def _parse_hit_objects_section(
-    section_contents: bytearray, *, format_version: int
-) -> ...:
-    ...
+    section_contents: bytearray,
+    *,
+    format_version: int,
+    slider_multiplier: float,
+    timing_points: list[TimingPoint],
+) -> ParsedHitObjectsData:
+    hit_objects = []
+
+    circle_count = 0
+    slider_count = 0
+    spinner_count = 0
+    hold_count = 0
+
+    lines = section_contents.split(b"\n")
+
+    for line in lines:
+        if not line:
+            continue
+
+        hit_object: dict[str, Any] = {}
+        values = line.split(b",")
+
+        hit_object[
+            "position"
+        ] = {  # In theory it's int in this case but we're using float for consistency
+            "x": float(values[0]),
+            "y": float(values[1]),
+        }
+
+        hit_object["start_time"] = _get_offset_time(int(values[2]), format_version)
+
+        hit_object_type = HitObject(int(values[3]))
+
+        hit_object["combo_color_offset"] = int(
+            (hit_object_type & HitObject.COMBO_OFFSET) >> 4,
+        )
+        hit_object_type &= ~HitObject.COMBO_OFFSET
+
+        hit_object["is_new_combo"] = hit_object_type.has_new_combo()
+        hit_object_type &= ~HitObject.NEW_COMBO
+
+        hit_object["hit_object_type"] = hit_object_type
+        hit_object["hit_sound_type"] = int(values[4])
+
+        # mania hold does it differently because last index is endTime:hitSample
+        if not hit_object_type.is_hold() and b":" in values[-1]:
+            custom_hit_sample_values = values[-1].split(b":")
+            hit_object["hit_sample"] = _create_custom_hit_sample(
+                custom_hit_sample_values,
+            )
+
+        if hit_object_type.is_circle():
+            circle_count += 1
+            hit_objects.append(HitObjectCircle(**hit_object))
+
+        elif hit_object_type.is_slider():
+            slider_count += 1
+
+            curve_type_raw, *curve_points_raw = values[5].split(b"|")
+            curve_type_info = _decode_osu_str(curve_type_raw)
+            hit_object["curve_type"] = CurveType(curve_type_info[0])
+
+            # Rare case when there is a custom degree for bezier curve
+            # fmt: off
+            if (
+                hit_object["curve_type"] is CurveType.BEZIER
+                and curve_type_info[1:].isdigit()
+            ):
+            # fmt: on
+                bezier_degree = int(curve_type_info[1:])
+
+                if bezier_degree > 0:
+                    hit_object["bezier_degree"] = bezier_degree
+
+            curve_points = []
+            for curve_point in curve_points_raw:
+                split = curve_point.split(b":")
+
+                curve_points.append(
+                    {
+                        "x": float(split[0]),
+                        "y": float(split[1]),
+                    },
+                )
+            hit_object["curve_points"] = curve_points
+
+            hit_object["slides"] = int(values[6])
+            hit_object["repeat_count"] = max(0, hit_object["slides"] - 1)
+            hit_object["pixel_length"] = float(values[7])
+
+            timing_point = algorithms.timing_points_binary_search(
+                timing_points, hit_object["start_time"],
+            )
+            if not timing_point:
+                slider_velocity = 1
+                timing_beat_len = 60000.0 / 60.0
+            else:
+                slider_velocity = timing_point.slider_velocity
+                timing_beat_len = timing_point.beat_length
+
+            # fmt: off
+            hit_object["end_time"] = round(
+                hit_object["start_time"] + hit_object["slides"] * hit_object["pixel_length"]
+                / ((100 * slider_multiplier * slider_velocity) / timing_beat_len),
+            )
+            # fmt: on
+
+            # TODO: rewrite this
+            # edge_sample_banks = []
+
+            # edge_hitsounds = []
+            # if len(values) >= 9:
+            #     edge_hitsounds = values[8].split(b"|")
+
+            # edge_samples = []
+            # if len(values) >= 10:
+            #     edge_samples = values[9].split(b"|")
+
+            # for edge_hitsound, edge_sample in zip(edge_hitsounds, edge_samples):
+            #     split = edge_sample.split(b":")
+            #     edge_sample_bank: dict[str, Any] = {}
+
+            #     edge_sample_bank["hit_sound_type"] = int(edge_hitsound)
+
+            #     # fmt: off
+            #     if len(split) == 2:
+            #         edge_sample_bank["normal_set"] = SampleSet.from_int_enum(int(split[0]))
+            #         edge_sample_bank["addition_set"] = SampleSet.from_int_enum(int(split[1]))
+            #     # fmt: on
+
+            #     edge_sample_banks.append(edge_sample_bank)
+
+            # if edge_sample_banks:
+            #     hit_object["edge_sample_banks"] = edge_sample_banks
+
+            hit_objects.append(HitObjectSlider(**hit_object))
+
+        elif hit_object_type.is_spinner():
+            spinner_count += 1
+
+            hit_object["end_time"] = _get_offset_time(int(values[5]), format_version)
+            hit_objects.append(HitObjectSpinner(**hit_object))
+
+        elif hit_object_type.is_hold():
+            hold_count += 1
+
+            additional_hold_values = values[5].split(b":")
+            hit_object["end_time"] = _get_offset_time(
+                int(additional_hold_values[0]),
+                format_version,
+            )
+            hit_object["hit_sample"] = _create_custom_hit_sample(
+                additional_hold_values[1:],
+            )
+
+            hit_objects.append(HitObjectHold(**hit_object))
+
+        else:
+            raise ValueError(f"Unreachable hit object type: {hit_object_type}")
+
+    return ParsedHitObjectsData(
+        hit_objects=hit_objects,
+        circle_count=circle_count,
+        slider_count=slider_count,
+        spinner_count=spinner_count,
+        hold_count=hold_count,
+    )
 
 
 def _parse_beatmap_contents(buffer_bytes: bytearray) -> OsuBeatmapFile:
@@ -501,10 +705,17 @@ def _parse_beatmap_contents(buffer_bytes: bytearray) -> OsuBeatmapFile:
     beatmap["maximum_bpm"] = parsed_timing_points_data["maximum_bpm"]
 
     beatmap["colours"] = _parse_colours_section(sections["colours"], allow_alpha=False)
-    beatmap["hit_objects"] = _parse_hit_objects_section(
+    parsed_hit_objects_data = _parse_hit_objects_section(
         sections["hitobjects"],
         format_version=beatmap["format_version"],
+        slider_multiplier=beatmap["difficulty"].slider_multiplier,
+        timing_points=beatmap["timing_points"],
     )
+    beatmap["hit_objects"] = parsed_hit_objects_data["hit_objects"]
+    beatmap["circle_count"] = parsed_hit_objects_data["circle_count"]
+    beatmap["slider_count"] = parsed_hit_objects_data["slider_count"]
+    beatmap["spinner_count"] = parsed_hit_objects_data["spinner_count"]
+    beatmap["hold_count"] = parsed_hit_objects_data["hold_count"]
 
     return OsuBeatmapFile(**beatmap)
 

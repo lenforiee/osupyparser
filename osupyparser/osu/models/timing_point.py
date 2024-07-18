@@ -11,7 +11,7 @@ class TimingPoint(BaseModel):
     beat_length: float
     time_signature: TimeSignature
     sample_set: SampleSet
-    custom_sample_bank: int
+    sample_index: int
     sample_volume: int
     timing_change: bool
 
