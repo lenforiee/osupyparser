@@ -38,4 +38,7 @@ class OsuBeatmapFile(BaseModel):
     spinner_count: int
     hold_count: int
 
-    # TODO: add max_combo, play_time, drain_time, break_time
+    max_combo: int
+    play_time: int
+    break_time: int
+    drain_time: int

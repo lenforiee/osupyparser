@@ -11,6 +11,7 @@ from osupyparser.constants.hit_object import HitObject
 from osupyparser.constants.sample_set import SampleSet
 from osupyparser.constants.time_signature import TimeSignature
 from osupyparser.helpers import algorithms
+from osupyparser.helpers import maths
 from osupyparser.osu.models.beatmap import OsuBeatmapFile
 from osupyparser.osu.models.hit_objects import CustomHitSample
 from osupyparser.osu.models.hit_objects import HitObjectCircle
@@ -87,7 +88,9 @@ def _create_custom_hit_sample(values: list[bytearray]) -> CustomHitSample:
 
 
 def _parse_general_section(
-    section_contents: bytearray, *, format_version: int
+    section_contents: bytearray,
+    *,
+    format_version: int,
 ) -> GeneralSection:
     general_section: dict[str, Any] = {}
     lines = section_contents.split(b"\n")
@@ -274,7 +277,9 @@ def _parse_difficulty_section(section_contents: bytearray) -> DifficultySection:
 
 
 def _parse_events_section(
-    section_contents: bytearray, *, format_version: int
+    section_contents: bytearray,
+    *,
+    format_version: int,
 ) -> EventsSection:
     # TODO: storyboard handling
     events_section: dict[str, Any] = {}
@@ -362,7 +367,9 @@ def _parse_events_section(
 
 
 def _parse_colours_section(
-    section_contents: bytearray, *, allow_alpha: bool
+    section_contents: bytearray,
+    *,
+    allow_alpha: bool,
 ) -> ColoursSection:
     colours_section: dict[str, Any] = {}
     lines = section_contents.split(b"\n")
@@ -520,12 +527,12 @@ def _parse_hit_objects_section(
         hit_object: dict[str, Any] = {}
         values = line.split(b",")
 
-        hit_object[
-            "position"
-        ] = {  # In theory it's int in this case but we're using float for consistency
-            "x": float(values[0]),
-            "y": float(values[1]),
-        }
+        hit_object["position"] = (
+            {  # In theory it's int in this case but we're using float for consistency
+                "x": float(values[0]),
+                "y": float(values[1]),
+            }
+        )
 
         hit_object["start_time"] = _get_offset_time(int(values[2]), format_version)
 
@@ -598,40 +605,16 @@ def _parse_hit_objects_section(
                 slider_velocity = timing_point.slider_velocity
                 timing_beat_len = timing_point.beat_length
 
-            # fmt: off
-            hit_object["end_time"] = round(
-                hit_object["start_time"] + hit_object["slides"] * hit_object["pixel_length"]
-                / ((100 * slider_multiplier * slider_velocity) / timing_beat_len),
+            hit_object["end_time"] = maths.calculate_slider_end_time(
+                hit_object["start_time"],
+                hit_object["slides"],
+                hit_object["pixel_length"],
+                slider_multiplier,
+                slider_velocity,
+                timing_beat_len,
             )
-            # fmt: on
 
-            # TODO: rewrite this
-            # edge_sample_banks = []
-
-            # edge_hitsounds = []
-            # if len(values) >= 9:
-            #     edge_hitsounds = values[8].split(b"|")
-
-            # edge_samples = []
-            # if len(values) >= 10:
-            #     edge_samples = values[9].split(b"|")
-
-            # for edge_hitsound, edge_sample in zip(edge_hitsounds, edge_samples):
-            #     split = edge_sample.split(b":")
-            #     edge_sample_bank: dict[str, Any] = {}
-
-            #     edge_sample_bank["hit_sound_type"] = int(edge_hitsound)
-
-            #     # fmt: off
-            #     if len(split) == 2:
-            #         edge_sample_bank["normal_set"] = SampleSet.from_int_enum(int(split[0]))
-            #         edge_sample_bank["addition_set"] = SampleSet.from_int_enum(int(split[1]))
-            #     # fmt: on
-
-            #     edge_sample_banks.append(edge_sample_bank)
-
-            # if edge_sample_banks:
-            #     hit_object["edge_sample_banks"] = edge_sample_banks
+            # TODO: rewrite edge sample banks parser
 
             hit_objects.append(HitObjectSlider(**hit_object))
 
@@ -716,6 +699,20 @@ def _parse_beatmap_contents(buffer_bytes: bytearray) -> OsuBeatmapFile:
     beatmap["slider_count"] = parsed_hit_objects_data["slider_count"]
     beatmap["spinner_count"] = parsed_hit_objects_data["spinner_count"]
     beatmap["hold_count"] = parsed_hit_objects_data["hold_count"]
+
+    beatmap["max_combo"] = maths.calculate_maximum_beatmap_combo(
+        beatmap["hit_objects"],
+        beatmap["timing_points"],
+        beatmap["difficulty"].slider_multiplier,
+        beatmap["difficulty"].slider_tick_rate,
+        beatmap["format_version"],
+    )
+    beatmap["play_time"] = maths.calculate_play_time(beatmap["hit_objects"])
+    beatmap["break_time"] = maths.calculate_break_time(beatmap["events"].break_periods)
+    beatmap["drain_time"] = maths.calculate_drain_time(
+        beatmap["play_time"],
+        beatmap["break_time"],
+    )
 
     return OsuBeatmapFile(**beatmap)
 

@@ -74,7 +74,9 @@ def _parse_replay_contents_lzma(
 
 
 def _parse_replay_contents_lazer(
-    reader: BinaryReader, *, length: int
+    reader: BinaryReader,
+    *,
+    length: int,
 ) -> OsuReplayLazerData:
     data = lzma.decompress(
         reader.read(length),
