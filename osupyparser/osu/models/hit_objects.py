@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from osupyparser.common.maths import Vector2
+from osupyparser.common.vector import Vector2
 from osupyparser.constants.curve_type import CurveType
 from osupyparser.constants.hit_object import HitObject
 from osupyparser.constants.hit_sound import HitSound

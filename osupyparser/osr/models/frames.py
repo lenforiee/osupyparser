@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from osupyparser.common.maths import Vector2
+from osupyparser.common.vector import Vector2
 from osupyparser.constants.keys import Keys
 
 
