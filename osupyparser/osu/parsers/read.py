@@ -687,7 +687,12 @@ def _parse_beatmap_contents(buffer_bytes: bytearray) -> OsuBeatmapFile:
     beatmap["minimum_bpm"] = parsed_timing_points_data["minimum_bpm"]
     beatmap["maximum_bpm"] = parsed_timing_points_data["maximum_bpm"]
 
-    beatmap["colours"] = _parse_colours_section(sections["colours"], allow_alpha=False)
+    if "colours" in sections:
+        beatmap["colours"] = _parse_colours_section(
+            sections["colours"],
+            allow_alpha=False,
+        )
+
     parsed_hit_objects_data = _parse_hit_objects_section(
         sections["hitobjects"],
         format_version=beatmap["format_version"],

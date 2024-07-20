@@ -25,7 +25,7 @@ class OsuBeatmapFile(BaseModel):
     difficulty: DifficultySection
     events: EventsSection
     timing_points: list[TimingPoint]
-    colours: ColoursSection
+    colours: ColoursSection | None = None
     hit_objects: list[
         HitObjectCircle | HitObjectSlider | HitObjectSpinner | HitObjectHold
     ]

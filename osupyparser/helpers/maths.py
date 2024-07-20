@@ -66,6 +66,7 @@ def calculate_drain_time(
     return play_time - break_time
 
 
+# TODO: those calculations are +/-3 off for catch and taiko
 def calculate_maximum_beatmap_combo(
     hit_objects: list[
         HitObjectCircle | HitObjectSlider | HitObjectSpinner | HitObjectHold
