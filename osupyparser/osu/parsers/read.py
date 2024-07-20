@@ -8,12 +8,14 @@ from typing import TypedDict
 from osupyparser.constants.curve_type import CurveType
 from osupyparser.constants.effects import Effects
 from osupyparser.constants.hit_object import HitObject
+from osupyparser.constants.hit_sound import HitSound
 from osupyparser.constants.sample_set import SampleSet
 from osupyparser.constants.time_signature import TimeSignature
 from osupyparser.helpers import algorithms
 from osupyparser.helpers import maths
 from osupyparser.osu.models.beatmap import OsuBeatmapFile
 from osupyparser.osu.models.hit_objects import CustomHitSample
+from osupyparser.osu.models.hit_objects import EdgeSampleBank
 from osupyparser.osu.models.hit_objects import HitObjectCircle
 from osupyparser.osu.models.hit_objects import HitObjectHold
 from osupyparser.osu.models.hit_objects import HitObjectSlider
@@ -547,9 +549,10 @@ def _parse_hit_objects_section(
         hit_object_type &= ~HitObject.NEW_COMBO
 
         hit_object["hit_object_type"] = hit_object_type
-        hit_object["hit_sound_type"] = int(values[4])
+        hit_object["hit_sound_type"] = HitSound(int(values[4]))
 
         # mania hold does it differently because last index is endTime:hitSample
+        hit_object["hit_sample"] = CustomHitSample()
         if not hit_object_type.is_hold() and b":" in values[-1]:
             custom_hit_sample_values = values[-1].split(b":")
             hit_object["hit_sample"] = _create_custom_hit_sample(
@@ -614,7 +617,42 @@ def _parse_hit_objects_section(
                 timing_beat_len,
             )
 
-            # TODO: rewrite edge sample banks parser
+            nodes = hit_object["repeat_count"] + 2
+            edge_bank_infos = [hit_object["hit_sample"] for _ in range(nodes)]
+
+            if len(values) > 9 and values[9]:
+                banks = values[9].split(b"|")
+
+                for i in range(nodes):
+                    if i >= len(banks):
+                        break
+
+                    split = banks[i].split(b":")
+
+                    edge_bank_infos[i].normal_set = SampleSet.from_int_enum(int(split[0]))
+                    edge_bank_infos[i].addition_set = SampleSet.from_int_enum(int(split[1]))
+
+            edge_hit_sounds = [hit_object["hit_sound_type"] for _ in range(nodes)]
+            if len(values) > 8 and values[8]:
+                hit_sounds = values[8].split(b"|")
+
+                for i in range(nodes):
+                    if i >= len(hit_sounds):
+                        break
+
+                    edge_hit_sounds[i] = HitSound(int(hit_sounds[i]))
+
+            edge_sample_banks: list[EdgeSampleBank] = []
+            for bank, hit_sound in zip(edge_bank_infos, edge_hit_sounds):
+                edge_sample_banks.append(
+                    EdgeSampleBank(
+                        hit_sound_type=hit_sound,
+                        hit_sample=bank,
+                    ),
+                )
+
+            if edge_sample_banks:
+                hit_object["edge_sample_banks"] = edge_sample_banks
 
             hit_objects.append(HitObjectSlider(**hit_object))
 

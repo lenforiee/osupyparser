@@ -20,8 +20,7 @@ class CustomHitSample(BaseModel):
 
 class EdgeSampleBank(BaseModel):
     hit_sound_type: HitSound
-    normal_set: SampleSet = SampleSet.NONE
-    addition_set: SampleSet = SampleSet.NONE
+    hit_sample: CustomHitSample
 
 
 class HitObjectBase(BaseModel):
@@ -31,7 +30,7 @@ class HitObjectBase(BaseModel):
     hit_sound_type: HitSound
     combo_color_offset: int
     is_new_combo: bool
-    hit_sample: CustomHitSample = CustomHitSample()
+    hit_sample: CustomHitSample
 
 
 class HitObjectCircle(HitObjectBase):
@@ -47,7 +46,7 @@ class HitObjectSlider(HitObjectBase):
     end_time: int
 
     bezier_degree: int | None = None
-    # edge_sample_banks: list[EdgeSampleBank] | None = None
+    edge_sample_banks: list[EdgeSampleBank] | None = None
 
 
 class HitObjectSpinner(HitObjectBase):
